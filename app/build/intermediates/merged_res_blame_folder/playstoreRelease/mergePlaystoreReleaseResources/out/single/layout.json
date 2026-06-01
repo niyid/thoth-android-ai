@@ -1,0 +1,14 @@
+[
+    {
+        "merged": "com.techducat.thot.app-mergePlaystoreReleaseResources-52:/layout/overlay_button.xml",
+        "source": "com.techducat.thot.app-main-55:/layout/overlay_button.xml"
+    },
+    {
+        "merged": "com.techducat.thot.app-mergePlaystoreReleaseResources-52:/layout/overlay_panel.xml",
+        "source": "com.techducat.thot.app-main-55:/layout/overlay_panel.xml"
+    },
+    {
+        "merged": "com.techducat.thot.app-mergePlaystoreReleaseResources-52:/layout/activity_main.xml",
+        "source": "com.techducat.thot.app-main-55:/layout/activity_main.xml"
+    }
+]

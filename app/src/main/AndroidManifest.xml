@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Network access for remote LLM calls -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Draw the floating Thot button over other apps -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+    <!-- Read screen content via AccessibilityService -->
+    <uses-permission android:name="android.permission.BIND_ACCESSIBILITY_SERVICE"
+        tools:ignore="ProtectedPermissions" />
+
+    <!-- Vibrate for subtle haptic feedback on button tap -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <!-- Send SMS via ChronoManager actions -->
+    <uses-permission android:name="android.permission.SEND_SMS" />
+
+    <!-- Read clipboard for context capture -->
+    <uses-permission android:name="android.permission.READ_CLIPBOARD_IN_BACKGROUND" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Thot"
+        tools:targetApi="31">
+
+        <!-- ── Main entry point / Settings screen ── -->
+        <activity
+            android:name=".ui.MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- ── Thot Overlay Window permission request activity ── -->
+        <activity
+            android:name=".ui.PermissionActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Thot.Transparent" />
+
+        <!-- ── Floating overlay service ── -->
+        <service
+            android:name=".accessibility.ThotOverlayService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse"
+            android:permission="android.permission.FOREGROUND_SERVICE" />
+
+        <!-- ── AccessibilityService — reads screen context ── -->
+        <service
+            android:name=".accessibility.ThotAccessibilityService"
+            android:exported="true"
+            android:label="@string/accessibility_service_label"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
+        </service>
+
+    </application>
+
+</manifest>

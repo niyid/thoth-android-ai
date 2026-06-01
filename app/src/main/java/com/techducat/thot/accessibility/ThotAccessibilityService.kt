@@ -56,7 +56,6 @@ class ThotAccessibilityService : AccessibilityService() {
                     text = text
                 )
             }
-            root.recycle()
         }
     }
 
@@ -89,7 +88,6 @@ class ThotAccessibilityService : AccessibilityService() {
         for (i in 0 until node.childCount) {
             val child = node.getChild(i) ?: continue
             sb.append(extractText(child, depth + 1))
-            child.recycle()
             if (sb.length > MAX_CHARS) break
         }
 

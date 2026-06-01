@@ -194,6 +194,10 @@ class ThotOverlayService : Service() {
             if (actionId == EditorInfo.IME_ACTION_SEND) {
                 val custom = etCustom.text?.toString()?.trim()
                 if (!custom.isNullOrBlank()) {
+                    // Dismiss keyboard and restore overlay focus behaviour
+                    val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+                    imm.hideSoftInputFromWindow(etCustom.windowToken, 0)
+                    etCustom.clearFocus()
                     denyKeyboard()
                     runTask(custom)
                 }
@@ -283,7 +287,7 @@ class ThotOverlayService : Service() {
             panel.findViewById<View>(R.id.scrollResponse).visibility = View.VISIBLE
             panel.findViewById<MaterialButton>(R.id.btnCopyResponse).visibility = View.VISIBLE
             // Report provider errors as non-fatals
-            if (result.startsWith("Error:")) {
+            if (result.startsWith("Error:") && !BuildConfig.IS_FDROID_BUILD) {
                 FirebaseCrashlytics.getInstance().apply {
                     setCustomKey("provider", prefs.provider.name)
                     setCustomKey("prompt_length", userPrompt.length)
@@ -365,9 +369,11 @@ class ThotOverlayService : Service() {
 
         private fun snapToEdge(params: WindowManager.LayoutParams) {
             val screenWidth = getScreenWidth()
-            val fabHalfWidth = 28   // approx half of FAB width in dp/px
-            params.x = if (params.x + fabHalfWidth < screenWidth / 2) 16
-                       else screenWidth - 72
+            val density = resources.displayMetrics.density
+            val snapLeft = (16 * density).toInt()
+            val snapRight = screenWidth - (72 * density).toInt()
+            params.x = if (params.x + (28 * density).toInt() < screenWidth / 2) snapLeft
+                       else snapRight
             // Clamp Y to screen
             params.y = params.y.coerceAtLeast(0)
             try { windowManager.updateViewLayout(fabView, params) } catch (_: Exception) {}

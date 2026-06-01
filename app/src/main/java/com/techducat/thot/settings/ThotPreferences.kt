@@ -2,6 +2,7 @@ package com.techducat.thot.settings
 
 import android.content.Context
 import androidx.core.content.edit
+import com.techducat.thot.BuildConfig
 import com.techducat.thot.core.ProviderType
 
 /**
@@ -10,6 +11,18 @@ import com.techducat.thot.core.ProviderType
 class ThotPreferences(context: Context) {
 
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+    init {
+        // Seed API keys from build-time constants (local.properties / CI env) if the
+        // user hasn't entered them manually yet.  This lets developers set keys once
+        // in local.properties without having to re-enter them on every fresh install.
+        if (openAiApiKey.isBlank() && BuildConfig.OPENAI_API_KEY.isNotBlank()) {
+            openAiApiKey = BuildConfig.OPENAI_API_KEY
+        }
+        if (anthropicApiKey.isBlank() && BuildConfig.ANTHROPIC_API_KEY.isNotBlank()) {
+            anthropicApiKey = BuildConfig.ANTHROPIC_API_KEY
+        }
+    }
 
     var openAiApiKey: String
         get() = prefs.getString(KEY_OPENAI_API_KEY, "") ?: ""

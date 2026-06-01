@@ -53,9 +53,9 @@ class LocalLLMProvider {
             "Based on what's visible on your screen, here's a plain-language breakdown:\n\n" +
             "• The content appears to be an interface or document requiring interpretation.\n" +
             "• Key terms or sections should be read top-to-bottom for context flow.\n" +
-            "• For a detailed AI explanation, please configure an OpenAI API key in Thot settings."
+            "• For a detailed AI explanation, please configure an OpenAI or Anthropic API key in Thot settings."
         } else {
-            "📖 Offline mode — I can provide better explanations with an OpenAI API key. " +
+            "📖 Offline mode — I can provide better explanations with an OpenAI or Anthropic API key. " +
             "Your question: \"$prompt\""
         }
     }
@@ -64,7 +64,7 @@ class LocalLLMProvider {
         val hasContext = prompt.contains("[Screen context")
         return if (hasContext) {
             "📋 Summary (offline mode)\n\n" +
-            "The screen content has been captured. For an intelligent summary, enable OpenAI " +
+            "The screen content has been captured. For an intelligent summary, enable OpenAI or Anthropic " +
             "in Thot settings.\n\n" +
             "In offline mode, Thot can copy/export the text for you to paste into another tool."
         } else {
@@ -77,12 +77,12 @@ class LocalLLMProvider {
         "I'm running without an AI backend. Here's a generic polite response template:\n\n" +
         "\"Thank you for your message. I've reviewed the content and will get back to you " +
         "with a detailed reply shortly.\"\n\n" +
-        "Enable OpenAI in Thot settings for context-aware responses."
+        "Enable OpenAI or Anthropic in Thot settings for context-aware responses."
 
     private fun buildDraft(prompt: String): String =
         "✍️ Draft (offline mode)\n\n" +
         "To draft personalised content I need an active AI provider. " +
-        "Please add your OpenAI API key in Thot Settings → AI Provider.\n\n" +
+        "Please add your OpenAI or Anthropic API key in Thot Settings → AI Provider.\n\n" +
         "Once connected, I can write emails, messages, posts, and more based on your current screen."
 
     private fun buildGeneric(prompt: String): String =
@@ -90,7 +90,7 @@ class LocalLLMProvider {
         "I received your request but I'm running in local mode without a language model. " +
         "For full AI capabilities:\n" +
         "  1. Open Thot settings\n" +
-        "  2. Set your OpenAI API key\n" +
-        "  3. Select \"OpenAI GPT-4o\" as your provider\n\n" +
+        "  2. Set your OpenAI or Anthropic API key\n" +
+        "  3. Select your preferred provider\n\n" +
         "Your prompt: \"${prompt.take(120)}${if (prompt.length > 120) "…" else ""}\""
 }

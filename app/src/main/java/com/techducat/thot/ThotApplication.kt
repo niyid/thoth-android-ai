@@ -18,16 +18,16 @@ class ThotApplication : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        FirebaseApp.initializeApp(this)
-
-        // Enable crash reporting in release; keep it on in debug too so you
-        // can verify the integration, but you can flip this to BuildConfig.DEBUG
-        // == false if you prefer a clean Logcat during development.
-        FirebaseCrashlytics.getInstance().apply {
-            setCrashlyticsCollectionEnabled(true)
-            // Tag every report with the app version so you can filter by release
-            setCustomKey("version_name", BuildConfig.VERSION_NAME)
-            setCustomKey("version_code", BuildConfig.VERSION_CODE)
+        // Firebase is only available in the playstore flavor.
+        // F-Droid builds have no Firebase dependency on the classpath at runtime.
+        if (!BuildConfig.IS_FDROID_BUILD) {
+            FirebaseApp.initializeApp(this)
+            FirebaseCrashlytics.getInstance().apply {
+                setCrashlyticsCollectionEnabled(true)
+                // Tag every report with the app version so you can filter by release
+                setCustomKey("version_name", BuildConfig.VERSION_NAME)
+                setCustomKey("version_code", BuildConfig.VERSION_CODE)
+            }
         }
     }
 }

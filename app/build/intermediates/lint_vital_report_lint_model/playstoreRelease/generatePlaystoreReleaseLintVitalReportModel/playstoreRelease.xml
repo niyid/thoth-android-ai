@@ -1,0 +1,33 @@
+<variant
+    name="playstoreRelease"
+    package="com.techducat.thot"
+    minSdkVersion="26"
+    targetSdkVersion="36"
+    shrinking="true"
+    mergedManifest="build/intermediates/merged_manifest/playstoreRelease/processPlaystoreReleaseMainManifest/AndroidManifest.xml"
+    manifestMergeReport="build/outputs/logs/manifest-merger-playstore-release-report.txt"
+    proguardFiles="build/intermediates/default_proguard_files/global/proguard-android-optimize.txt-8.10.1:proguard-rules.pro"
+    partialResultsDir="build/intermediates/lint_vital_partial_results/playstoreRelease/lintVitalAnalyzePlaystoreRelease/out">
+  <buildFeatures
+      viewBinding="true"
+      namespacing="REQUIRED"/>
+  <sourceProviders>
+    <sourceProvider
+        manifests="src/main/AndroidManifest.xml"
+        javaDirectories="src/main/java:src/playstore/java:src/release/java:src/playstoreRelease/java:src/main/kotlin:src/playstore/kotlin:src/release/kotlin:src/playstoreRelease/kotlin"
+        resDirectories="src/main/res:src/playstore/res:src/release/res:src/playstoreRelease/res"
+        assetsDirectories="src/main/assets:src/playstore/assets:src/release/assets:src/playstoreRelease/assets"/>
+  </sourceProviders>
+  <testSourceProviders>
+  </testSourceProviders>
+  <testFixturesSourceProviders>
+  </testFixturesSourceProviders>
+  <artifact
+      classOutputs="build/intermediates/javac/playstoreRelease/compilePlaystoreReleaseJavaWithJavac/classes:build/tmp/kotlin-classes/playstoreRelease:build/kotlinToolingMetadata:build/intermediates/compile_and_runtime_not_namespaced_r_class_jar/playstoreRelease/processPlaystoreReleaseResources/R.jar"
+      type="MAIN"
+      applicationId="com.techducat.thot"
+      generatedSourceFolders="build/generated/ap_generated_sources/playstoreRelease/out:build/generated/source/buildConfig/playstore/release:build/generated/data_binding_base_class_source_out/playstoreRelease/out"
+      generatedResourceFolders="build/generated/res/processPlaystoreReleaseGoogleServices:build/generated/res/injectCrashlyticsMappingFileIdPlaystoreRelease:build/generated/res/resValues/playstore/release"
+      desugaredMethodsFiles="/home/niyid/.gradle/caches/8.11.1/transforms/d8e93738b274fc578e56f5a3b6a3d8ec/transformed/D8BackportedDesugaredMethods.txt">
+  </artifact>
+</variant>

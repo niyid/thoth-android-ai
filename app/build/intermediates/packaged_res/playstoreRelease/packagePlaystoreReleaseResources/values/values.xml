@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:ns1="http://schemas.android.com/tools">
+    <string-array name="provider_options">
+        <item>Local (offline)</item>
+        <item>OpenAI GPT-4o</item>
+        <item>Anthropic Claude</item>
+    </string-array>
+    <string-array name="provider_values">
+        <item>LOCAL</item>
+        <item>OPENAI</item>
+        <item>ANTHROPIC</item>
+    </string-array>
+    <color name="black">#FF000000</color>
+    <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_500">#FF6200EE</color>
+    <color name="purple_700">#FF3700B3</color>
+    <color name="purple_900">#FF1A0070</color>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
+    <color name="thot_fab_bg">#FF6200EE</color>
+    <color name="thot_panel_bg">#FAFAFA</color>
+    <color name="white">#FFFFFFFF</color>
+    <string name="accessibility_service_description">Thot reads your current screen to provide AI-powered context explanations and task automation. No data is stored without your consent.</string>
+    <string name="accessibility_service_label">Thot AI Assistant</string>
+    <string name="accessibility_service_summary">Reads screen content to power context-aware AI responses</string>
+    <string name="app_name">Thot</string>
+    <string name="btn_grant_overlay">Grant Overlay Permission</string>
+    <string name="btn_open_accessibility">Open Accessibility Settings</string>
+    <string name="btn_save">Save Settings</string>
+    <string name="btn_test">Test AI</string>
+    <string name="com.google.firebase.crashlytics.mapping_file_id" ns1:ignore="UnusedResources,TypographyDashes" translatable="false">5b4a0aa5fa7441efbac8569948bd1600</string>
+    <string name="gcm_defaultSenderId" translatable="false">749398786919</string>
+    <string name="google_api_key" translatable="false">AIzaSyCrvY2HI88JOJO0dfx9pamf34ptZAlWYeI</string>
+    <string name="google_app_id" translatable="false">1:749398786919:android:854832a326115a0ee1e5c2</string>
+    <string name="google_crash_reporting_api_key" translatable="false">AIzaSyCrvY2HI88JOJO0dfx9pamf34ptZAlWYeI</string>
+    <string name="google_storage_bucket" translatable="false">thot-e442e.firebasestorage.app</string>
+    <string name="hint_anthropic_api_key">sk-ant-…</string>
+    <string name="hint_api_key">sk-…</string>
+    <string name="label_accessibility_enabled">Enable Screen Reader</string>
+    <string name="label_api_key">OpenAI API Key</string>
+    <string name="label_overlay_enabled">Enable Floating Button</string>
+    <string name="label_provider">AI Provider</string>
+    <string name="overlay_button_label">Thot</string>
+    <string name="overlay_close">Close</string>
+    <string name="overlay_custom">Custom task…</string>
+    <string name="overlay_explain">Explain this screen</string>
+    <string name="overlay_respond">Suggest response</string>
+    <string name="overlay_summarize">Summarize</string>
+    <string name="overlay_write">Write for me…</string>
+    <string name="project_id" translatable="false">thot-e442e</string>
+    <string name="status_accessibility_needed">Accessibility permission required to read screen context</string>
+    <string name="status_no_key">No API key set — using local mode</string>
+    <string name="status_overlay_needed">Overlay permission required to show floating button</string>
+    <string name="status_ready">Ready</string>
+    <string name="status_thinking">Thot is thinking…</string>
+    <string name="title_settings">Thot Settings</string>
+    <string name="toast_settings_saved">Settings saved</string>
+    <style name="Theme.Thot" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+        <item name="colorPrimary">@color/purple_700</item>
+        <item name="colorPrimaryVariant">@color/purple_900</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">@color/teal_200</item>
+        <item name="colorSecondaryVariant">@color/teal_700</item>
+        <item name="colorOnSecondary">@color/black</item>
+        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
+    </style>
+    <style name="Theme.Thot.Transparent" parent="Theme.Thot">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowIsFloating">true</item>
+        <item name="android:backgroundDimEnabled">false</item>
+    </style>
+</resources>

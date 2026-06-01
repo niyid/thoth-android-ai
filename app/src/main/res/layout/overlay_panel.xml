@@ -45,12 +45,12 @@
         android:textColor="#888"
         android:layout_marginBottom="8dp" />
 
-    <!-- Quick action buttons -->
+    <!-- Quick action buttons row 1 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:layout_marginBottom="8dp">
+        android:layout_marginBottom="4dp">
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnExplain"
@@ -106,7 +106,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:imeOptions="actionSend"
-            android:inputType="text" />
+            android:inputType="text|textAutoCorrect"
+            android:maxLines="2" />
 
     </com.google.android.material.textfield.TextInputLayout>
 
@@ -133,24 +134,26 @@
 
     </LinearLayout>
 
-    <!-- Response area -->
-    <ScrollView
+    <!-- Response area — constrained height so it doesn't grow off screen -->
+    <androidx.core.widget.NestedScrollView
         android:id="@+id/scrollResponse"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:maxHeight="200dp"
+        android:layout_weight="0"
         android:visibility="gone">
 
         <TextView
             android:id="@+id/tvResponse"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:maxHeight="200dp"
             android:textSize="13sp"
             android:padding="8dp"
             android:background="#10000000"
-            android:textIsSelectable="true" />
+            android:textIsSelectable="true"
+            android:scrollbars="vertical" />
 
-    </ScrollView>
+    </androidx.core.widget.NestedScrollView>
 
     <!-- Copy response button -->
     <com.google.android.material.button.MaterialButton

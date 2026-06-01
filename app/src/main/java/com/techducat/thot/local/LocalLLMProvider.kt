@@ -15,9 +15,9 @@ package com.techducat.thot.local
 class LocalLLMProvider {
 
     /**
-     * Process [prompt] (which may include screen context prepended by [ThothTask.buildFullPrompt])
+     * Process [prompt] (which may include screen context prepended by [ThotTask.buildFullPrompt])
      * and return a response string synchronously.
-     * This is called on a background thread by [ThothCoreProvider].
+     * This is called on a background thread by [ThotCoreProvider].
      */
     fun handle(prompt: String): String {
         val lower = prompt.lowercase()

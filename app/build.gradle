@@ -1,6 +1,8 @@
 plugins {
     id 'com.android.application'
     id 'kotlin-android'
+    id 'com.google.gms.google-services'
+    id 'com.google.firebase.crashlytics'
 }
 
 android {
@@ -14,8 +16,9 @@ android {
         versionCode 1
         versionName "1.0"
 
-        // API key is set via BuildConfig — override in local.properties or CI
-        buildConfigField "String", "OPENAI_API_KEY", "\"${project.findProperty('OPENAI_API_KEY') ?: ''}\""
+        // API keys — override in local.properties or CI environment
+        buildConfigField "String", "OPENAI_API_KEY",    "\"${project.findProperty('OPENAI_API_KEY') ?: ''}\""
+        buildConfigField "String", "ANTHROPIC_API_KEY", "\"${project.findProperty('ANTHROPIC_API_KEY') ?: ''}\""
     }
 
     buildFeatures {
@@ -27,10 +30,17 @@ android {
         release {
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            firebaseCrashlytics {
+                mappingFileUploadEnabled true
+            }
         }
         debug {
             applicationIdSuffix ".debug"
             debuggable true
+            firebaseCrashlytics {
+                // Disable Crashlytics NDK reporting in debug to speed up builds
+                nativeSymbolUploadEnabled false
+            }
         }
     }
 
@@ -67,4 +77,9 @@ dependencies {
 
     // Kotlin stdlib
     implementation "org.jetbrains.kotlin:kotlin-stdlib:1.9.0"
+
+    // Firebase / Crashlytics
+    implementation platform('com.google.firebase:firebase-bom:32.7.4')
+    implementation 'com.google.firebase:firebase-crashlytics-ktx'
+    implementation 'com.google.firebase:firebase-analytics-ktx'
 }

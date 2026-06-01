@@ -8,7 +8,7 @@ package com.techducat.thot.core
  *                       automatically prepended to the prompt when available.
  * @param provider       Which LLM backend to use.
  */
-data class ThothTask(
+data class ThotTask(
     val prompt: String,
     val screenContext: String = "",
     val provider: ProviderType = ProviderType.LOCAL
@@ -29,10 +29,11 @@ data class ThothTask(
 
 enum class ProviderType {
     LOCAL,
-    OPENAI;
+    OPENAI,
+    ANTHROPIC;
 
     companion object {
         fun fromString(value: String): ProviderType =
-            values().firstOrNull { it.name == value } ?: LOCAL
+            entries.firstOrNull { it.name == value } ?: LOCAL
     }
 }

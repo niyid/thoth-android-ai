@@ -1,28 +1,36 @@
 package com.techducat.thot.accessibility
 
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.graphics.PixelFormat
+import android.os.Build
 import android.os.IBinder
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import android.util.DisplayMetrics
 import android.util.Log
 import android.view.*
 import android.view.inputmethod.EditorInfo
-import android.widget.Spinner
+import android.view.inputmethod.InputMethodManager
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.app.NotificationCompat
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
 import com.techducat.thot.R
-import com.techducat.thot.core.ProviderType
-import com.techducat.thot.core.ThothCoreProvider
-import com.techducat.thot.core.ThothTask
+import com.techducat.thot.core.ThotCoreProvider
+import com.techducat.thot.core.ThotTask
 import com.techducat.thot.settings.ThotPreferences
+import com.techducat.thot.ui.MainActivity
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 
 /**
  * Foreground service that draws two overlay windows via [WindowManager]:
@@ -32,12 +40,15 @@ import com.techducat.thot.settings.ThotPreferences
  *
  *  2. **Action panel** — shows quick-action buttons (Explain, Summarize, Respond, Write)
  *     and a text field for custom tasks. Displays the AI response inline.
+ *
+ * Must be started as a foreground service (Android 8+) to remain alive while
+ * other apps are in the foreground.
  */
 class ThotOverlayService : Service() {
 
     private lateinit var windowManager: WindowManager
     private lateinit var prefs: ThotPreferences
-    private lateinit var thothProvider: ThothCoreProvider
+    private lateinit var thotProvider: ThotCoreProvider
 
     // Overlay views
     private var fabView: View? = null
@@ -50,11 +61,15 @@ class ThotOverlayService : Service() {
     private var touchInitialX = 0f
     private var touchInitialY = 0f
 
+    // Panel WindowManager params — kept as field so we can update flags for keyboard
+    private var panelParams: WindowManager.LayoutParams? = null
+
     override fun onCreate() {
         super.onCreate()
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         prefs = ThotPreferences(this)
-        thothProvider = ThothCoreProvider(this)
+        thotProvider = ThotCoreProvider(this)
+        startForegroundWithNotification()
         addFab()
     }
 
@@ -66,7 +81,42 @@ class ThotOverlayService : Service() {
         super.onDestroy()
         removeFab()
         removePanel()
-        thothProvider.cancel()
+        thotProvider.cancel()
+    }
+
+    // ── Foreground notification ──────────────────────────────────────────────
+
+    private fun startForegroundWithNotification() {
+        val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+
+        // Create channel (no-op on API < 26, required on 26+)
+        val channel = NotificationChannel(
+            NOTIF_CHANNEL_ID,
+            "Thot Overlay",
+            NotificationManager.IMPORTANCE_MIN
+        ).apply {
+            description = "Keeps the Thot floating button active"
+            setShowBadge(false)
+        }
+        nm.createNotificationChannel(channel)
+
+        val tapIntent = PendingIntent.getActivity(
+            this,
+            0,
+            Intent(this, MainActivity::class.java),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+
+        val notification: Notification = NotificationCompat.Builder(this, NOTIF_CHANNEL_ID)
+            .setContentTitle("Thot is active")
+            .setContentText("Tap to open settings")
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentIntent(tapIntent)
+            .setOngoing(true)
+            .setPriority(NotificationCompat.PRIORITY_MIN)
+            .build()
+
+        startForeground(NOTIF_ID, notification)
     }
 
     // ── FAB ─────────────────────────────────────────────────────────────────
@@ -81,12 +131,13 @@ class ThotOverlayService : Service() {
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.START
-            x = 16
-            y = 200
+            x = prefs.fabX
+            y = prefs.fabY
         }
 
         fabView!!.setOnTouchListener(FabTouchListener(params))
@@ -94,7 +145,9 @@ class ThotOverlayService : Service() {
     }
 
     private fun removeFab() {
-        fabView?.let { windowManager.removeView(it) }
+        fabView?.let {
+            try { windowManager.removeView(it) } catch (_: Exception) {}
+        }
         fabView = null
     }
 
@@ -129,19 +182,29 @@ class ThotOverlayService : Service() {
             runTask("Write a relevant message or content based on what's on this screen.")
         }
 
-        // Custom task via keyboard
+        // Custom task — tap the field to allow keyboard input by removing FLAG_NOT_FOCUSABLE
         val etCustom = view.findViewById<TextInputEditText>(R.id.etCustomTask)
+        etCustom.setOnClickListener {
+            allowKeyboard()
+            etCustom.requestFocus()
+            val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+            imm.showSoftInput(etCustom, InputMethodManager.SHOW_IMPLICIT)
+        }
         etCustom.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_SEND) {
                 val custom = etCustom.text?.toString()?.trim()
-                if (!custom.isNullOrBlank()) runTask(custom)
+                if (!custom.isNullOrBlank()) {
+                    denyKeyboard()
+                    runTask(custom)
+                }
                 true
             } else false
         }
 
         // Copy button
         view.findViewById<MaterialButton>(R.id.btnCopyResponse).setOnClickListener {
-            val text = view.findViewById<TextView>(R.id.tvResponse).text?.toString() ?: return@setOnClickListener
+            val text = view.findViewById<TextView>(R.id.tvResponse).text?.toString()
+                ?: return@setOnClickListener
             val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
             clipboard.setPrimaryClip(ClipData.newPlainText("Thot response", text))
             Toast.makeText(this, "Copied!", Toast.LENGTH_SHORT).show()
@@ -151,18 +214,47 @@ class ThotOverlayService : Service() {
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+            // NOT_FOCUSABLE initially — updated when user taps the text field
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                    WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                    WindowManager.LayoutParams.FLAG_DIM_BEHIND,
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.CENTER
+            dimAmount = 0.3f
         }
+        panelParams = params
 
         windowManager.addView(view, params)
     }
 
+    /**
+     * Remove NOT_FOCUSABLE so the soft keyboard can be raised for the custom task field.
+     */
+    private fun allowKeyboard() {
+        val pv = panelView ?: return
+        val pp = panelParams ?: return
+        pp.flags = pp.flags and WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE.inv()
+        try { windowManager.updateViewLayout(pv, pp) } catch (_: Exception) {}
+    }
+
+    /**
+     * Restore NOT_FOCUSABLE after the keyboard is dismissed so the overlay doesn't
+     * consume back-button / other system events.
+     */
+    private fun denyKeyboard() {
+        val pv = panelView ?: return
+        val pp = panelParams ?: return
+        pp.flags = pp.flags or WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+        try { windowManager.updateViewLayout(pv, pp) } catch (_: Exception) {}
+    }
+
     private fun removePanel() {
-        panelView?.let { windowManager.removeView(it) }
+        panelView?.let {
+            try { windowManager.removeView(it) } catch (_: Exception) {}
+        }
         panelView = null
+        panelParams = null
         isPanelVisible = false
     }
 
@@ -172,32 +264,42 @@ class ThotOverlayService : Service() {
         val panel = panelView ?: return
         val screenCtx = ThotAccessibilityService.latestContext
 
-        val task = ThothTask(
+        val task = ThotTask(
             prompt = userPrompt,
             screenContext = screenCtx?.toPromptString() ?: "",
             provider = prefs.provider
         )
 
-        // Show loading
         panel.findViewById<View>(R.id.layoutLoading).visibility = View.VISIBLE
         panel.findViewById<View>(R.id.scrollResponse).visibility = View.GONE
         panel.findViewById<MaterialButton>(R.id.btnCopyResponse).visibility = View.GONE
 
         vibrate()
 
-        thothProvider.runTask(task) { result ->
+        thotProvider.runTask(task) { result ->
+            if (panelView == null) return@runTask  // panel was closed before result arrived
             panel.findViewById<View>(R.id.layoutLoading).visibility = View.GONE
             panel.findViewById<TextView>(R.id.tvResponse).text = result
             panel.findViewById<View>(R.id.scrollResponse).visibility = View.VISIBLE
             panel.findViewById<MaterialButton>(R.id.btnCopyResponse).visibility = View.VISIBLE
+            // Report provider errors as non-fatals
+            if (result.startsWith("Error:")) {
+                FirebaseCrashlytics.getInstance().apply {
+                    setCustomKey("provider", prefs.provider.name)
+                    setCustomKey("prompt_length", userPrompt.length)
+                    recordException(RuntimeException("Overlay LLM call failed: $result"))
+                }
+            }
         }
     }
 
     private fun vibrate() {
         try {
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 val vm = getSystemService(VibratorManager::class.java)
-                vm.defaultVibrator.vibrate(VibrationEffect.createOneShot(30, VibrationEffect.DEFAULT_AMPLITUDE))
+                vm.defaultVibrator.vibrate(
+                    VibrationEffect.createOneShot(30, VibrationEffect.DEFAULT_AMPLITUDE)
+                )
             } else {
                 @Suppress("DEPRECATION")
                 val vibrator = getSystemService(VIBRATOR_SERVICE) as Vibrator
@@ -205,7 +307,20 @@ class ThotOverlayService : Service() {
                 vibrator.vibrate(30)
             }
         } catch (e: Exception) {
-            Log.w("ThotOverlay", "Vibrate failed: ${e.message}")
+            Log.w(TAG, "Vibrate failed: ${e.message}")
+        }
+    }
+
+    // ── Screen width helper ──────────────────────────────────────────────────
+
+    private fun getScreenWidth(): Int {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            windowManager.currentWindowMetrics.bounds.width()
+        } else {
+            val metrics = DisplayMetrics()
+            @Suppress("DEPRECATION")
+            windowManager.defaultDisplay.getMetrics(metrics)
+            metrics.widthPixels
         }
     }
 
@@ -230,19 +345,18 @@ class ThotOverlayService : Service() {
                 MotionEvent.ACTION_MOVE -> {
                     val dx = (event.rawX - touchInitialX).toInt()
                     val dy = (event.rawY - touchInitialY).toInt()
-                    if (Math.abs(dx) > 8 || Math.abs(dy) > 8) hasMoved = true
+                    if (kotlin.math.abs(dx) > 8 || kotlin.math.abs(dy) > 8) hasMoved = true
                     params.x = fabInitialX + dx
                     params.y = fabInitialY + dy
-                    windowManager.updateViewLayout(fabView, params)
+                    try { windowManager.updateViewLayout(fabView, params) } catch (_: Exception) {}
                     true
                 }
                 MotionEvent.ACTION_UP -> {
                     if (!hasMoved) {
-                        // Tap — toggle panel
                         if (isPanelVisible) removePanel() else showPanel()
+                    } else {
+                        snapToEdge(params)
                     }
-                    // Snap to nearest edge
-                    snapToEdge(params)
                     true
                 }
                 else -> false
@@ -250,14 +364,22 @@ class ThotOverlayService : Service() {
         }
 
         private fun snapToEdge(params: WindowManager.LayoutParams) {
-            val display = windowManager.defaultDisplay
-            val size = android.graphics.Point()
-            @Suppress("DEPRECATION")
-            display.getSize(size)
-            val screenWidth = size.x
-            val midX = screenWidth / 2
-            params.x = if (params.x + 28 < midX) 16 else screenWidth - 72
-            windowManager.updateViewLayout(fabView, params)
+            val screenWidth = getScreenWidth()
+            val fabHalfWidth = 28   // approx half of FAB width in dp/px
+            params.x = if (params.x + fabHalfWidth < screenWidth / 2) 16
+                       else screenWidth - 72
+            // Clamp Y to screen
+            params.y = params.y.coerceAtLeast(0)
+            try { windowManager.updateViewLayout(fabView, params) } catch (_: Exception) {}
+            // Persist position
+            prefs.fabX = params.x
+            prefs.fabY = params.y
         }
+    }
+
+    companion object {
+        private const val TAG = "ThotOverlay"
+        private const val NOTIF_CHANNEL_ID = "thot_overlay_channel"
+        private const val NOTIF_ID = 1001
     }
 }

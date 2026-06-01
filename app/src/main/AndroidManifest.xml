@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Network access for remote LLM calls -->
     <uses-permission android:name="android.permission.INTERNET" />
@@ -8,7 +9,8 @@
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
     <!-- Read screen content via AccessibilityService -->
-    <uses-permission android:name="android.permission.BIND_ACCESSIBILITY_SERVICE"
+    <uses-permission
+        android:name="android.permission.BIND_ACCESSIBILITY_SERVICE"
         tools:ignore="ProtectedPermissions" />
 
     <!-- Vibrate for subtle haptic feedback on button tap -->
@@ -17,10 +19,15 @@
     <!-- Send SMS via ChronoManager actions -->
     <uses-permission android:name="android.permission.SEND_SMS" />
 
-    <!-- Read clipboard for context capture -->
-    <uses-permission android:name="android.permission.READ_CLIPBOARD_IN_BACKGROUND" />
+    <!-- Foreground service permissions -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+
+    <!-- Post notifications (required for foreground service notification on API 33+) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
+        android:name=".ThotApplication"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -47,12 +54,15 @@
             android:exported="false"
             android:theme="@style/Theme.Thot.Transparent" />
 
-        <!-- ── Floating overlay service ── -->
+        <!-- ── Floating overlay service (foreground) ── -->
         <service
             android:name=".accessibility.ThotOverlayService"
             android:exported="false"
-            android:foregroundServiceType="specialUse"
-            android:permission="android.permission.FOREGROUND_SERVICE" />
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Draws a floating AI assistant button over all apps" />
+        </service>
 
         <!-- ── AccessibilityService — reads screen context ── -->
         <service

@@ -10,7 +10,7 @@ Thot is an OS-level AI assistant that draws a floating button over **every app**
 Any App  →  AccessibilityService reads visible text
          →  Floating overlay button (WindowManager TYPE_APPLICATION_OVERLAY)
          →  User taps Explain / Summarize / Respond / custom
-         →  ThothCoreProvider dispatches to LOCAL or OPENAI backend
+         →  ThotCoreProvider dispatches to LOCAL or OPENAI backend
          →  Response shown inline in the overlay panel
 ```
 
@@ -25,10 +25,10 @@ app/src/main/java/com/techducat/thot/
 │   ├── ThotOverlayService.kt         ← Floating FAB + action panel
 │   └── ScreenContext.kt              (inline in ThotAccessibilityService)
 ├── core/
-│   ├── ThothTask.kt                  ← Task data model + ProviderType enum
-│   ├── ThothContextProvider.kt       ← Interface
-│   ├── ThothCoreProvider.kt          ← Routes tasks to LOCAL / OPENAI
-│   └── BaseThothActivity.kt          ← Optional base class for host activities
+│   ├── ThotTask.kt                  ← Task data model + ProviderType enum
+│   ├── ThotContextProvider.kt       ← Interface
+│   ├── ThotCoreProvider.kt          ← Routes tasks to LOCAL / OPENAI
+│   └── BaseThotActivity.kt          ← Optional base class for host activities
 ├── remote/
 │   └── OpenAiClient.kt               ← OkHttp → GPT-4o
 ├── local/
@@ -123,12 +123,12 @@ manager.cancelAll()
 ## Extending Thot from your own Activity
 
 ```kotlin
-class MyActivity : BaseThothActivity() {
+class MyActivity : BaseThotActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val task = ThothTask(
+        val task = ThotTask(
             prompt = "Summarise the payment flow on this screen.",
             screenContext = "Checkout — Total: ₦45,000 — Pay with card",
             provider = ProviderType.OPENAI
@@ -171,3 +171,32 @@ class LocalLLMProvider {
 - Kotlin 1.9+
 - Android Studio Hedgehog+
 - OpenAI API key (optional — app works offline with local provider)
+
+---
+
+## Firebase / Crashlytics setup
+
+Thot uses Firebase Crashlytics for crash and non-fatal error reporting.
+
+### One-time project setup
+
+1. Create (or open) a project at [console.firebase.google.com](https://console.firebase.google.com).
+2. Add an Android app with package name `com.techducat.thot`.
+3. Download the generated `google-services.json` and place it at `app/google-services.json`.
+4. Sync Gradle — the `google-services` and `firebase-crashlytics` plugins handle the rest.
+
+### What is reported
+
+| Event | Where |
+|---|---|
+| Unhandled crashes | Automatic (Crashlytics SDK) |
+| LLM provider errors (`Error: …` responses) | `MainActivity` & `ThotOverlayService` via `recordException()` |
+| App version & provider name | Custom keys attached to every report |
+
+### Disabling collection (GDPR / user opt-out)
+
+```kotlin
+FirebaseCrashlytics.getInstance().setCrashlyticsCollectionEnabled(false)
+```
+
+Call this before `FirebaseApp.initializeApp()` completes, or persist the user's choice in `ThotPreferences` and apply it in `ThotApplication.onCreate()`.

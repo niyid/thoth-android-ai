@@ -11,6 +11,7 @@
     <string name="title_settings">Thot Settings</string>
     <string name="label_api_key">OpenAI API Key</string>
     <string name="hint_api_key">sk-…</string>
+    <string name="hint_anthropic_api_key">sk-ant-…</string>
     <string name="label_provider">AI Provider</string>
     <string name="label_overlay_enabled">Enable Floating Button</string>
     <string name="label_accessibility_enabled">Enable Screen Reader</string>
@@ -38,9 +39,11 @@
     <string-array name="provider_options">
         <item>Local (offline)</item>
         <item>OpenAI GPT-4o</item>
+        <item>Anthropic Claude</item>
     </string-array>
     <string-array name="provider_values">
         <item>LOCAL</item>
         <item>OPENAI</item>
+        <item>ANTHROPIC</item>
     </string-array>
 </resources>

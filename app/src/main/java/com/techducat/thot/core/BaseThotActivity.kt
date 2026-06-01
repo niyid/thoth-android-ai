@@ -7,29 +7,30 @@ import androidx.appcompat.app.AppCompatActivity
  * Optional base class for host-app activities that want direct access to Thot.
  * Extend this if you want to call [requestLLMContext] from your own activities.
  *
- * Activities that cannot extend this class can instead create a [ThothCoreProvider]
+ * Activities that cannot extend this class can instead create a [ThotCoreProvider]
  * instance directly.
  */
-abstract class BaseThothActivity : AppCompatActivity() {
+abstract class BaseThotActivity : AppCompatActivity() {
 
-    protected lateinit var thothProvider: ThothContextProvider
+    // Exposed as ThotCoreProvider directly to allow calling cancel() without unsafe cast.
+    protected lateinit var thotProvider: ThotCoreProvider
         private set
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        thothProvider = ThothCoreProvider(this)
+        thotProvider = ThotCoreProvider(this)
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        (thothProvider as? ThothCoreProvider)?.cancel()
+        thotProvider.cancel()
     }
 
     /**
-     * Submit a [ThothTask] to the active LLM provider.
+     * Submit a [ThotTask] to the active LLM provider.
      * [callback] is invoked on the main thread with the response string.
      */
-    fun requestLLMContext(task: ThothTask, callback: (String) -> Unit) {
-        thothProvider.runTask(task, callback)
+    fun requestLLMContext(task: ThotTask, callback: (String) -> Unit) {
+        thotProvider.runTask(task, callback)
     }
 }

@@ -8,22 +8,20 @@ import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.lifecycleScope
 import com.techducat.thot.R
 import com.techducat.thot.accessibility.ThotAccessibilityService
 import com.techducat.thot.core.ProviderType
-import com.techducat.thot.core.ThothCoreProvider
-import com.techducat.thot.core.ThothTask
+import com.techducat.thot.core.ThotCoreProvider
+import com.techducat.thot.core.ThotTask
 import com.techducat.thot.databinding.ActivityMainBinding
 import com.techducat.thot.settings.ThotPreferences
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var prefs: ThotPreferences
-    private lateinit var thothProvider: ThothCoreProvider
+    private lateinit var thotProvider: ThotCoreProvider
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -31,7 +29,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         prefs = ThotPreferences(this)
-        thothProvider = ThothCoreProvider(this)
+        thotProvider = ThotCoreProvider(this)
 
         setupProviderSpinner()
         loadSettings()
@@ -45,7 +43,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        thothProvider.cancel()
+        thotProvider.cancel()
     }
 
     // ── Setup ────────────────────────────────────────────────────────────────
@@ -59,9 +57,15 @@ class MainActivity : AppCompatActivity() {
 
     private fun loadSettings() {
         binding.etApiKey.setText(prefs.openAiApiKey)
+        binding.etAnthropicApiKey.setText(prefs.anthropicApiKey)
         binding.spinnerProvider.setSelection(
-            if (prefs.provider == ProviderType.LOCAL) 0 else 1
+            when (prefs.provider) {
+                ProviderType.LOCAL -> 0
+                ProviderType.OPENAI -> 1
+                ProviderType.ANTHROPIC -> 2
+            }
         )
+        updateApiKeyVisibility(binding.spinnerProvider.selectedItemPosition)
     }
 
     private fun setupListeners() {
@@ -69,6 +73,24 @@ class MainActivity : AppCompatActivity() {
         binding.btnOpenAccessibility.setOnClickListener { openAccessibilitySettings() }
         binding.btnSave.setOnClickListener { saveSettings() }
         binding.btnTest.setOnClickListener { runTest() }
+
+        binding.spinnerProvider.onItemSelectedListener =
+            object : android.widget.AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(
+                    parent: android.widget.AdapterView<*>?,
+                    view: View?,
+                    position: Int,
+                    id: Long
+                ) {
+                    updateApiKeyVisibility(position)
+                }
+                override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
+            }
+    }
+
+    private fun updateApiKeyVisibility(position: Int) {
+        binding.tilApiKey.visibility = if (position == 1) View.VISIBLE else View.GONE
+        binding.tilAnthropicApiKey.visibility = if (position == 2) View.VISIBLE else View.GONE
     }
 
     // ── Permissions ──────────────────────────────────────────────────────────
@@ -102,9 +124,12 @@ class MainActivity : AppCompatActivity() {
 
     private fun saveSettings() {
         prefs.openAiApiKey = binding.etApiKey.text?.toString()?.trim() ?: ""
-        prefs.provider = if (binding.spinnerProvider.selectedItemPosition == 0)
-            ProviderType.LOCAL else ProviderType.OPENAI
-
+        prefs.anthropicApiKey = binding.etAnthropicApiKey.text?.toString()?.trim() ?: ""
+        prefs.provider = when (binding.spinnerProvider.selectedItemPosition) {
+            1 -> ProviderType.OPENAI
+            2 -> ProviderType.ANTHROPIC
+            else -> ProviderType.LOCAL
+        }
         Toast.makeText(this, getString(R.string.toast_settings_saved), Toast.LENGTH_SHORT).show()
     }
 
@@ -117,14 +142,21 @@ class MainActivity : AppCompatActivity() {
         binding.tvTestResult.text = getString(R.string.status_thinking)
         binding.btnTest.isEnabled = false
 
-        val task = ThothTask(
+        val task = ThotTask(
             prompt = "Introduce yourself in one sentence. You are Thot, a mobile AI assistant.",
             provider = prefs.provider
         )
 
-        thothProvider.runTask(task) { result ->
+        thotProvider.runTask(task) { result ->
             binding.tvTestResult.text = result
             binding.btnTest.isEnabled = true
+            // Report provider errors as non-fatals so they appear in Crashlytics
+            if (result.startsWith("Error:")) {
+                FirebaseCrashlytics.getInstance().apply {
+                    setCustomKey("provider", prefs.provider.name)
+                    recordException(RuntimeException("Test LLM call failed: $result"))
+                }
+            }
         }
     }
 }

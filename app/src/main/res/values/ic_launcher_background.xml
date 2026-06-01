@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Dark navy background matching the Thot artwork -->
     <color name="ic_launcher_background">#0D1B2E</color>
 </resources>

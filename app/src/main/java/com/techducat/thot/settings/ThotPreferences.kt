@@ -12,6 +12,14 @@ class ThotPreferences(context: Context) {
 
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
+    var openAiApiKey: String
+        get() = prefs.getString(KEY_OPENAI_API_KEY, "") ?: ""
+        set(value) = prefs.edit { putString(KEY_OPENAI_API_KEY, value) }
+
+    var anthropicApiKey: String
+        get() = prefs.getString(KEY_ANTHROPIC_API_KEY, "") ?: ""
+        set(value) = prefs.edit { putString(KEY_ANTHROPIC_API_KEY, value) }
+
     init {
         // Seed API keys from build-time constants (local.properties / CI env) if the
         // user hasn't entered them manually yet.  This lets developers set keys once
@@ -23,14 +31,6 @@ class ThotPreferences(context: Context) {
             anthropicApiKey = BuildConfig.ANTHROPIC_API_KEY
         }
     }
-
-    var openAiApiKey: String
-        get() = prefs.getString(KEY_OPENAI_API_KEY, "") ?: ""
-        set(value) = prefs.edit { putString(KEY_OPENAI_API_KEY, value) }
-
-    var anthropicApiKey: String
-        get() = prefs.getString(KEY_ANTHROPIC_API_KEY, "") ?: ""
-        set(value) = prefs.edit { putString(KEY_ANTHROPIC_API_KEY, value) }
 
     var provider: ProviderType
         get() = ProviderType.fromString(prefs.getString(KEY_PROVIDER, ProviderType.LOCAL.name) ?: "")

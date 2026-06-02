@@ -1,0 +1,65 @@
+Calculating task graph as no cached configuration is available for tasks: clean bundlePlaystoreRelease
+> Task :app:preBuild UP-TO-DATE
+> Task :app:prePlaystoreReleaseBuild UP-TO-DATE
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:clean
+> Task :app:mergePlaystoreReleaseShaders
+> Task :app:compilePlaystoreReleaseShaders NO-SOURCE
+> Task :app:generatePlaystoreReleaseAssets UP-TO-DATE
+> Task :app:extractPlaystoreReleaseVersionControlInfo
+> Task :app:buildKotlinToolingMetadata
+> Task :app:mergePlaystoreReleaseAssets
+> Task :app:dataBindingMergeDependencyArtifactsPlaystoreRelease
+> Task :app:generatePlaystoreReleaseResValues
+> Task :app:generatePlaystoreReleaseResources
+> Task :app:injectCrashlyticsMappingFileIdPlaystoreRelease
+> Task :app:processPlaystoreReleaseGoogleServices
+> Task :app:checkPlaystoreReleaseDuplicateClasses
+> Task :app:generatePlaystoreReleaseBuildConfig
+> Task :app:checkPlaystoreReleaseAarMetadata
+> Task :app:mapPlaystoreReleaseSourceSetPaths
+> Task :app:createPlaystoreReleaseCompatibleScreenManifests
+> Task :app:extractDeepLinksPlaystoreRelease
+> Task :app:processPlaystoreReleaseMainManifest
+> Task :app:processPlaystoreReleaseManifest
+> Task :app:processPlaystoreReleaseManifestForPackage
+> Task :app:javaPreCompilePlaystoreRelease
+> Task :app:mergePlaystoreReleaseArtProfile
+> Task :app:extractProguardFiles
+> Task :app:mergePlaystoreReleaseStartupProfile UP-TO-DATE
+> Task :app:mergePlaystoreReleaseJniLibFolders
+> Task :app:mergePlaystoreReleaseNativeLibs NO-SOURCE
+> Task :app:stripPlaystoreReleaseDebugSymbols NO-SOURCE
+> Task :app:writePlaystoreReleaseAppMetadata
+> Task :app:collectPlaystoreReleaseDependencies
+> Task :app:configurePlaystoreReleaseDependencies
+> Task :app:extractPlaystoreReleaseNativeSymbolTables NO-SOURCE
+> Task :app:parsePlaystoreReleaseIntegrityConfig
+> Task :app:validateSigningPlaystoreRelease
+> Task :app:mergePlaystoreReleaseResources
+> Task :app:packagePlaystoreReleaseResources
+> Task :app:parsePlaystoreReleaseLocalResources
+> Task :app:dataBindingGenBaseClassesPlaystoreRelease
+> Task :app:processPlaystoreReleaseResources
+
+> Task :app:compilePlaystoreReleaseKotlin FAILED
+e: file:///home/niyid/git/thoth-android-ai/app/src/main/java/com/techducat/thot/accessibility/ThotOverlayService.kt:290:49 Unresolved reference 'BuildConfig'.
+e: file:///home/niyid/git/thoth-android-ai/app/src/main/java/com/techducat/thot/settings/ThotPreferences.kt:20:13 Variable cannot be initialized before declaration.
+e: file:///home/niyid/git/thoth-android-ai/app/src/main/java/com/techducat/thot/settings/ThotPreferences.kt:23:13 Variable cannot be initialized before declaration.
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compilePlaystoreReleaseKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Compilation error. See log for more details
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 45s
+35 actionable tasks: 34 executed, 1 up-to-date
+Configuration cache entry stored.

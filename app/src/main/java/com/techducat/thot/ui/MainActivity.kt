@@ -21,6 +21,7 @@ import com.techducat.thot.core.ThotTask
 import com.techducat.thot.databinding.ActivityMainBinding
 import com.techducat.thot.settings.ThotPreferences
 import com.google.firebase.crashlytics.FirebaseCrashlytics
+import com.techducat.thot.ui.ProminentDisclosureDialog
 
 class MainActivity : AppCompatActivity() {
 
@@ -82,7 +83,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupListeners() {
         binding.btnGrantOverlay.setOnClickListener { requestOverlayPermission() }
-        binding.btnOpenAccessibility.setOnClickListener { openAccessibilitySettings() }
+        binding.btnOpenAccessibility.setOnClickListener { showAccessibilityDisclosure() }
         binding.btnSave.setOnClickListener { saveSettings() }
         binding.btnTest.setOnClickListener { runTest() }
 
@@ -137,6 +138,27 @@ class MainActivity : AppCompatActivity() {
             Uri.parse("package:$packageName")
         )
         startActivity(intent)
+    }
+
+    /**
+     * Gate for enabling the Accessibility Service.
+     *
+     * Google Play requires a prominent disclosure to be shown BEFORE the user
+     * is sent to system Accessibility Settings. The dialog explains:
+     *   • Why the AccessibilityService API is used (screen reading for AI context).
+     *   • What data is collected (visible text + foreground app name).
+     *   • How the data is used (sent to the selected AI provider on demand).
+     * Only after the user explicitly accepts are they directed to system settings.
+     */
+    private fun showAccessibilityDisclosure() {
+        if (ProminentDisclosureDialog.hasBeenAccepted(this)) {
+            // User already accepted in a previous session — go straight to settings
+            openAccessibilitySettings()
+        } else {
+            ProminentDisclosureDialog.show(this) {
+                openAccessibilitySettings()
+            }
+        }
     }
 
     private fun openAccessibilitySettings() {

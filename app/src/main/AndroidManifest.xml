@@ -16,9 +16,6 @@
     <!-- Vibrate for subtle haptic feedback on button tap -->
     <uses-permission android:name="android.permission.VIBRATE" />
 
-    <!-- Send SMS via ChronoManager actions -->
-    <uses-permission android:name="android.permission.SEND_SMS" />
-
     <!-- Foreground service permissions -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />

@@ -16,7 +16,7 @@
     <string name="label_overlay_enabled">Enable Floating Button</string>
     <string name="label_accessibility_enabled">Enable Screen Reader</string>
     <string name="btn_grant_overlay">Grant Overlay Permission</string>
-    <string name="btn_open_accessibility">Open Accessibility Settings</string>
+    <string name="btn_open_accessibility">Enable Screen Reader</string>
     <string name="btn_save">Save Settings</string>
     <string name="btn_test">Test AI</string>
     <string name="status_ready">Ready</string>
@@ -46,4 +46,37 @@
         <item>OPENAI</item>
         <item>ANTHROPIC</item>
     </string-array>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         Prominent Disclosure Dialog  (Google Play policy requirement)
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <string name="disclosure_title">Before you enable the Screen Reader</string>
+
+    <string name="disclosure_body">
+        Thot uses Android\'s <b>Accessibility Service</b> to read the visible text on your screen.
+        This is required so the AI can understand what you are looking at and provide helpful,
+        context-aware responses.\n\n
+
+        <b>What data is collected</b>\n
+        • The <b>visible text</b> on your screen (e.g. messages, article content, form labels).\n
+        • The <b>name of the app</b> currently in the foreground.\n\n
+
+        <b>How this data is used</b>\n
+        • The captured text is included in the prompt that is sent to your chosen AI provider
+          (OpenAI, Anthropic Claude, or the on-device model) <b>only when you tap the Thot button</b>.\n
+        • It is <b>not stored</b> on the device beyond the current session, and is <b>not shared</b>
+          with any third party other than the AI provider you have selected.\n\n
+
+        <b>What Thot does NOT do</b>\n
+        • Does not record passwords, payment details, or any data you type.\n
+        • Does not run continuously in a way that logs your activity.\n
+        • Does not upload data in the background.\n\n
+
+        You can disable the Accessibility Service at any time in\n
+        <i>Settings → Accessibility → Thot AI Assistant</i>.
+    </string>
+
+    <string name="disclosure_btn_proceed">I Understand — Enable</string>
+    <string name="disclosure_btn_cancel">Cancel</string>
+    <string name="disclosure_pref_accepted_key">prominent_disclosure_accepted</string>
 </resources>

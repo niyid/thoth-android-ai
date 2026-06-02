@@ -189,7 +189,7 @@ class MainActivity : AppCompatActivity() {
             } else {
                 Toast.makeText(
                     this,
-                    "Please grant the "Display over other apps" permission first.",
+                    "Please grant the \"Display over other apps\" permission first.",
                     Toast.LENGTH_LONG
                 ).show()
                 binding.switchOverlay.isChecked = false

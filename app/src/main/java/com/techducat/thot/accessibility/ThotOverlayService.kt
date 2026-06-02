@@ -15,6 +15,7 @@ import android.os.IBinder
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import android.provider.Settings
 import android.util.DisplayMetrics
 import android.util.Log
 import android.view.*
@@ -71,6 +72,17 @@ class ThotOverlayService : Service() {
         prefs = ThotPreferences(this)
         thotProvider = ThotCoreProvider(this)
         startForegroundWithNotification()
+
+        // FIX (crash 2): TYPE_APPLICATION_OVERLAY requires the SYSTEM_ALERT_WINDOW
+        // permission to be granted at runtime.  Calling addView() without it throws
+        // WindowManager.BadTokenException and crashes the service.  Stop gracefully
+        // so MainActivity can prompt the user to grant the permission instead.
+        if (!Settings.canDrawOverlays(this)) {
+            Log.w(TAG, "Overlay permission not granted — stopping ThotOverlayService")
+            stopSelf()
+            return
+        }
+
         addFab()
     }
 

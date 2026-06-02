@@ -178,10 +178,23 @@ class MainActivity : AppCompatActivity() {
         val overlayEnabled = binding.switchOverlay.isChecked
         prefs.overlayEnabled = overlayEnabled
 
-        // Start or stop the overlay service based on the toggle
+        // Start or stop the overlay service based on the toggle.
+        // FIX (crash 2 companion): only start the service when the overlay
+        // permission is already granted; otherwise the service crashes trying
+        // to call WindowManager.addView() with TYPE_APPLICATION_OVERLAY.
         val overlayIntent = Intent(this, com.techducat.thot.accessibility.ThotOverlayService::class.java)
         if (overlayEnabled) {
-            startService(overlayIntent)
+            if (android.provider.Settings.canDrawOverlays(this)) {
+                startService(overlayIntent)
+            } else {
+                Toast.makeText(
+                    this,
+                    "Please grant the "Display over other apps" permission first.",
+                    Toast.LENGTH_LONG
+                ).show()
+                binding.switchOverlay.isChecked = false
+                prefs.overlayEnabled = false
+            }
         } else {
             stopService(overlayIntent)
         }

@@ -53,13 +53,22 @@ app/src/main/java/com/techducat/thot/
 - File → Open → select the project root folder
 - Android Studio Hedgehog (2023.1) or newer recommended
 
-### 2. Set your OpenAI API key
-Either:
-- **At runtime**: Launch the app → enter your `sk-…` key → tap Save
-- **At build time** (CI-safe): add to `local.properties`:
-  ```
-  OPENAI_API_KEY=sk-your-key-here
-  ```
+### 2. Set your API key(s)
+
+Keys can be entered at runtime or supplied at build time. You only need the key(s) for the provider(s) you intend to use.
+
+#### At runtime (recommended)
+Launch the app, select your provider in the spinner, enter your key, and tap **Save**.
+
+#### At build time (CI-safe)
+Add one or both keys to `local.properties` (this file is git-ignored and never included in the APK):
+```
+OPENAI_API_KEY=sk-your-openai-key-here
+ANTHROPIC_API_KEY=sk-ant-your-anthropic-key-here
+```
+Both keys can also be supplied as environment variables with the same names — useful for CI pipelines where `local.properties` is not checked in.
+
+> **Note:** Build-time keys only pre-seed the app on first launch. Any key you enter manually in the app takes permanent precedence and will not be overwritten.
 
 ### 3. Grant permissions (first launch)
 The app will prompt for both:

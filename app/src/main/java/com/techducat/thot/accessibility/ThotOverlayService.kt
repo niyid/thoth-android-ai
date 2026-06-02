@@ -31,7 +31,6 @@ import com.techducat.thot.core.ThotTask
 import com.techducat.thot.settings.ThotPreferences
 import com.techducat.thot.ui.MainActivity
 import com.google.firebase.crashlytics.FirebaseCrashlytics
-import com.techducat.thot.BuildConfig
 
 /**
  * Foreground service that draws two overlay windows via [WindowManager]:

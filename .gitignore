@@ -14,9 +14,3 @@ build/
 .externalNativeBuild
 .cxx
 local.properties
-*.aab
-*.apk
-.kotlin/
-refresh.txt
-*.log
-logs/

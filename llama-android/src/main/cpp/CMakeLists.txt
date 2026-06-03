@@ -145,7 +145,10 @@ target_compile_definitions(ggml PRIVATE
 # etc.) and any other subdirectories added in future revisions.
 # Exclude top-level tool entry-points that drag in main() or HTTP server deps.
 file(GLOB_RECURSE _ALL_LLAMA_SRC "${LLAMA_SRC}/src/*.cpp")
-list(FILTER _ALL_LLAMA_SRC EXCLUDE REGEX ".*(server|cli|main)[^/]*\\.cpp$")
+# Exclude only files whose basename starts with server/cli/main (standalone
+# tool entry-points with their own main() or HTTP-server deps). Anchored on
+# a path separator so "maincoder.cpp", "climber.cpp" etc. are NOT dropped.
+list(FILTER _ALL_LLAMA_SRC EXCLUDE REGEX "/(server|cli|main)[^/]*\\.cpp$")
 
 if(NOT _ALL_LLAMA_SRC)
     message(FATAL_ERROR "No llama.cpp sources found under ${LLAMA_SRC}/src/\nRun: git submodule update --init --recursive")

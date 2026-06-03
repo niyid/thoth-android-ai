@@ -47,16 +47,29 @@ add_if_exists(GGML_SOURCES "${LLAMA_SRC}/ggml/src/ggml-cpu/repack.cpp")
 add_if_exists(GGML_SOURCES "${LLAMA_SRC}/ggml/src/ggml-cpu/binary-ops.cpp")
 add_if_exists(GGML_SOURCES "${LLAMA_SRC}/ggml/src/ggml-cpu/unary-ops.cpp")
 
-# arch/ — ARM-specific quantize_row_*_ref and ggml_vec_dot_* implementations
-# GLOB recursively so we catch aarch64/, arm/, fallback/ etc. whatever this revision uses
-file(GLOB_RECURSE _GGML_ARCH_SRCS
-    "${LLAMA_SRC}/ggml/src/ggml-cpu/arch/*.c"
-    "${LLAMA_SRC}/ggml/src/ggml-cpu/arch/*.cpp"
-)
-# Include arch/ sources for ALL ABIs — x86/quants.c provides the same
-# ggml_vec_dot_* symbols for x86_64 that arm/quants.c provides for ARM.
-# Skipping any ABI here causes undefined quantization kernel symbols at link time.
-list(APPEND GGML_SOURCES ${_GGML_ARCH_SRCS})
+# arch/ — platform-specific quant kernels that OVERRIDE the generic ones in
+# ggml-cpu/quants.c. Each subdirectory is a separate platform; including more
+# than one causes duplicate-symbol errors. Map ANDROID_ABI to the right subdir.
+if(ANDROID_ABI STREQUAL "arm64-v8a" OR ANDROID_ABI STREQUAL "armeabi-v7a")
+    set(_GGML_ARCH_SUBDIR "arm")
+elseif(ANDROID_ABI STREQUAL "x86_64")
+    set(_GGML_ARCH_SUBDIR "x86")
+elseif(ANDROID_ABI STREQUAL "x86")
+    set(_GGML_ARCH_SUBDIR "x86")
+else()
+    set(_GGML_ARCH_SUBDIR "")
+endif()
+
+if(_GGML_ARCH_SUBDIR)
+    file(GLOB_RECURSE _GGML_ARCH_SRCS
+        "${LLAMA_SRC}/ggml/src/ggml-cpu/arch/${_GGML_ARCH_SUBDIR}/*.c"
+        "${LLAMA_SRC}/ggml/src/ggml-cpu/arch/${_GGML_ARCH_SUBDIR}/*.cpp"
+    )
+    list(APPEND GGML_SOURCES ${_GGML_ARCH_SRCS})
+    message(STATUS "ggml arch backend: ${_GGML_ARCH_SUBDIR} (${ANDROID_ABI})")
+else()
+    message(STATUS "ggml arch backend: none (no arch/ subdir for ABI ${ANDROID_ABI})")
+endif()
 
 # llamafile/ — may contain additional scalar kernels referenced by quants.c
 file(GLOB _GGML_LLAMAFILE_SRCS

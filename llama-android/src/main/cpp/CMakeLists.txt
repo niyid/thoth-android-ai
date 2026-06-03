@@ -23,8 +23,10 @@ set(GGML_SOURCES "")
 foreach(_f
     "${LLAMA_SRC}/ggml/src/ggml.c"
     "${LLAMA_SRC}/ggml/src/ggml-alloc.c"
+    "${LLAMA_SRC}/ggml/src/ggml-quants.c"           # _ref scalar impls called by ggml-cpu/quants.c
     "${LLAMA_SRC}/ggml/src/ggml-backend.cpp"
     "${LLAMA_SRC}/ggml/src/ggml-backend-reg.cpp"
+    "${LLAMA_SRC}/ggml/src/ggml-backend-meta.cpp"   # ggml_backend_buffer_is_meta et al.
     "${LLAMA_SRC}/ggml/src/ggml-threading.cpp"
     "${LLAMA_SRC}/ggml/src/ggml-cpu/ggml-cpu.c"
     "${LLAMA_SRC}/ggml/src/ggml-cpu/ggml-cpu.cpp"
@@ -91,13 +93,12 @@ target_include_directories(ggml PUBLIC
     "${LLAMA_SRC}/ggml/src"
     "${LLAMA_SRC}/ggml/src/ggml-cpu"
     "${LLAMA_SRC}/ggml/src/ggml-cpu/arch"
-    "${LLAMA_SRC}/ggml/src/ggml-cpu/arch/arm"   # ARM quant headers (cpu-feats etc.)
+    "${LLAMA_SRC}/ggml/src/ggml-cpu/arch/arm"
     "${LLAMA_SRC}/ggml/src/ggml-cpu/llamafile"
 )
 
 target_compile_definitions(ggml PRIVATE
     GGML_USE_CPU
-    GGML_CPU_GENERIC          # activates arch-fallback.h macros: _generic → base name
     GGML_VERSION="${_GGML_GIT_DESC}"
     GGML_COMMIT="${_GGML_GIT_DESC}"
 )
@@ -135,7 +136,7 @@ target_link_libraries(llama_android PRIVATE
     android
     log
     atomic
-    dl                        # ggml-backend-reg.cpp uses dlopen/dlsym on Android
+    dl
     m
 )
 

@@ -76,22 +76,27 @@ else()
     )
 endif()
 
-# ggml-dl — provides dl_load_library / dl_get_sym / dl_error used by ggml-backend-reg.cpp
-# The filename varies across revisions (ggml-dl.cpp, ggml-dynamic-loader.cpp, etc.)
-# so we glob rather than hard-code.
-file(GLOB _GGML_DL_SRCS
-    "${LLAMA_SRC}/ggml/src/ggml-dl*.cpp"
-    "${LLAMA_SRC}/ggml/src/ggml-dl*.c"
-    "${LLAMA_SRC}/ggml/src/ggml-dynamic*.cpp"
-)
-if(_GGML_DL_SRCS)
-    list(APPEND GGML_SOURCES ${_GGML_DL_SRCS})
+# ggml-backend-dl — provides dl_load_library / dl_get_sym / dl_error used by ggml-backend-reg.cpp
+# Known filenames across revisions: ggml-backend-dl.cpp, ggml-dl.cpp, ggml-dynamic-loader.cpp
+# We hard-code the known name first, then fall back to globs for older/newer revisions.
+if(EXISTS "${LLAMA_SRC}/ggml/src/ggml-backend-dl.cpp")
+    list(APPEND GGML_SOURCES "${LLAMA_SRC}/ggml/src/ggml-backend-dl.cpp")
 else()
-    message(WARNING
-        "No ggml-dl*.cpp found in ${LLAMA_SRC}/ggml/src/. "
-        "If the build fails with undefined dl_load_library / dl_get_sym / dl_error, "
-        "locate the file providing those symbols and add it here."
+    file(GLOB _GGML_DL_SRCS
+        "${LLAMA_SRC}/ggml/src/ggml-dl*.cpp"
+        "${LLAMA_SRC}/ggml/src/ggml-dl*.c"
+        "${LLAMA_SRC}/ggml/src/ggml-dynamic*.cpp"
+        "${LLAMA_SRC}/ggml/src/ggml-backend-dl*.cpp"
     )
+    if(_GGML_DL_SRCS)
+        list(APPEND GGML_SOURCES ${_GGML_DL_SRCS})
+    else()
+        message(FATAL_ERROR
+            "ggml-backend-dl.cpp (or equivalent) not found in ${LLAMA_SRC}/ggml/src/.\n"
+            "This file provides dl_load_library / dl_get_sym / dl_error.\n"
+            "Run: git submodule update --init --recursive"
+        )
+    endif()
 endif()
 
 # Optional top-level ggml extras
@@ -136,12 +141,18 @@ target_compile_definitions(ggml PRIVATE
 )
 
 # ── llama_core sources ────────────────────────────────────────────────────────
-file(GLOB _ALL_LLAMA_SRC "${LLAMA_SRC}/src/*.cpp")
+# GLOB_RECURSE picks up src/models/*.cpp (llama_model_*, llama_arch_* vtables,
+# etc.) and any other subdirectories added in future revisions.
+# Exclude top-level tool entry-points that drag in main() or HTTP server deps.
+file(GLOB_RECURSE _ALL_LLAMA_SRC "${LLAMA_SRC}/src/*.cpp")
 list(FILTER _ALL_LLAMA_SRC EXCLUDE REGEX ".*(server|cli|main)[^/]*\\.cpp$")
 
 if(NOT _ALL_LLAMA_SRC)
     message(FATAL_ERROR "No llama.cpp sources found under ${LLAMA_SRC}/src/\nRun: git submodule update --init --recursive")
 endif()
+
+list(LENGTH _ALL_LLAMA_SRC _LLAMA_SRC_COUNT)
+message(STATUS "llama_core: found ${_LLAMA_SRC_COUNT} source files under ${LLAMA_SRC}/src/")
 
 add_library(llama_core STATIC ${_ALL_LLAMA_SRC})
 

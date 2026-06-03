@@ -45,6 +45,21 @@ add_if_exists(GGML_SOURCES "${LLAMA_SRC}/ggml/src/ggml-cpu/repack.cpp")
 add_if_exists(GGML_SOURCES "${LLAMA_SRC}/ggml/src/ggml-cpu/binary-ops.cpp")
 add_if_exists(GGML_SOURCES "${LLAMA_SRC}/ggml/src/ggml-cpu/unary-ops.cpp")
 
+# arch/ — ARM-specific quantize_row_*_ref and ggml_vec_dot_* implementations
+# GLOB recursively so we catch aarch64/, arm/, fallback/ etc. whatever this revision uses
+file(GLOB_RECURSE _GGML_ARCH_SRCS
+    "${LLAMA_SRC}/ggml/src/ggml-cpu/arch/*.c"
+    "${LLAMA_SRC}/ggml/src/ggml-cpu/arch/*.cpp"
+)
+list(APPEND GGML_SOURCES ${_GGML_ARCH_SRCS})
+
+# llamafile/ — may contain additional scalar kernels referenced by quants.c
+file(GLOB _GGML_LLAMAFILE_SRCS
+    "${LLAMA_SRC}/ggml/src/ggml-cpu/llamafile/*.c"
+    "${LLAMA_SRC}/ggml/src/ggml-cpu/llamafile/*.cpp"
+)
+list(APPEND GGML_SOURCES ${_GGML_LLAMAFILE_SRCS})
+
 # Optional top-level ggml extras
 add_if_exists(GGML_SOURCES "${LLAMA_SRC}/ggml/src/ggml-opt.cpp")
 
@@ -75,10 +90,14 @@ target_include_directories(ggml PUBLIC
     "${LLAMA_SRC}/ggml/include"
     "${LLAMA_SRC}/ggml/src"
     "${LLAMA_SRC}/ggml/src/ggml-cpu"
+    "${LLAMA_SRC}/ggml/src/ggml-cpu/arch"
+    "${LLAMA_SRC}/ggml/src/ggml-cpu/arch/arm"   # ARM quant headers (cpu-feats etc.)
+    "${LLAMA_SRC}/ggml/src/ggml-cpu/llamafile"
 )
 
 target_compile_definitions(ggml PRIVATE
     GGML_USE_CPU
+    GGML_CPU_GENERIC          # activates arch-fallback.h macros: _generic → base name
     GGML_VERSION="${_GGML_GIT_DESC}"
     GGML_COMMIT="${_GGML_GIT_DESC}"
 )
@@ -116,6 +135,7 @@ target_link_libraries(llama_android PRIVATE
     android
     log
     atomic
+    dl                        # ggml-backend-reg.cpp uses dlopen/dlsym on Android
     m
 )
 

@@ -36,7 +36,7 @@ android {
         externalNativeBuild {
             cmake {
                 // Build for all common ABIs.  Remove armeabi-v7a / x86 to shrink the APK.
-                abiFilters += setOf("arm64-v8a", "armeabi-v7a", "x86_64")
+                abiFilters += setOf("arm64-v8a", "x86_64")
                 // Pass the llama.cpp source root to CMake.
                 arguments(
                     "-DLLAMA_SOURCE_DIR=${rootProject.projectDir}/third_party/llama.cpp"

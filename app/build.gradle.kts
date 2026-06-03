@@ -140,6 +140,13 @@ android {
     kotlinOptions { jvmTarget = "17" }
 
     packaging {
+        jniLibs {
+            // Required for 16KB page-size alignment to take effect at install time.
+            // false = .so files stored uncompressed in the APK so the OS can mmap them
+            // directly at the correct alignment boundary. true (legacy) would compress
+            // them, defeating the ELF p_align patch entirely.
+            useLegacyPackaging = false
+        }
         resources {
             excludes += setOf(
                 "/META-INF/{AL2.0,LGPL2.1}",
@@ -151,6 +158,150 @@ android {
         }
     }
 }
+
+// ── 16KB ELF Alignment ───────────────────────────────────────────────────────
+//
+// WHY: Android devices with 16KB page sizes (Pixel 9+, future ARM SoCs) require
+// ELF PT_LOAD segments to be aligned to 16384 bytes. Google Play will flag APKs
+// whose .so files are not aligned and will block them from 16KB-page devices.
+//
+// HOW: align_elf.py (from ~/git/server_extras/) patches PT_LOAD p_align to 16384.
+//      Hooks into stripDebugSymbols so patching happens after stripping, before
+//      both APK packaging AND AAB bundling.
+//
+// NOTE: useLegacyPackaging = false (set above in jniLibs) is equally required.
+// The ELF p_align patch is useless if .so files are compressed in the APK/AAB,
+// because the OS cannot mmap them directly — it extracts them first, losing alignment.
+// Both fixes together = correct 16KB support.
+//
+// APPLIES TO: llama_android.so (built by :llama-android NDK module)
+//             and any MediaPipe .so files bundled via tasks-genai AAR.
+
+val alignElfPy = "${System.getProperty("user.home")}/git/server_extras/align_elf.py"
+
+val archsToProcess = listOf("arm64-v8a", "x86_64")
+
+tasks.whenTaskAdded {
+    if (name.startsWith("strip") && name.contains("DebugSymbol")) {
+        doLast {
+            println("=== Checking and realigning native libraries for 16KB page size ===")
+
+            val alignScript = File(alignElfPy)
+            if (!alignScript.exists()) {
+                println("ERROR: align_elf.py not found at $alignElfPy")
+                println("Please ensure align_elf.py exists in ~/git/server_extras/")
+                return@doLast
+            }
+
+            val strippedLibsDir = File(project.layout.buildDirectory.get().asFile, "intermediates/stripped_native_libs")
+
+            var filesChecked = 0
+            var filesAligned = 0
+            var filesSkipped = 0
+
+            fun readElfLoadAlignment(file: File): Long {
+                try {
+                    val bytes = file.readBytes()
+                    if (bytes.size < 64 || bytes[0] != 0x7F.toByte() ||
+                        bytes[1] != 0x45.toByte() || bytes[2] != 0x4C.toByte() || bytes[3] != 0x46.toByte()) {
+                        return -1L
+                    }
+                    val is64bit = bytes[4] == 0x02.toByte()
+                    val isLE    = bytes[5] == 0x01.toByte()
+
+                    fun readU16(offset: Int): Int {
+                        val a = bytes[offset].toInt() and 0xFF
+                        val b = bytes[offset + 1].toInt() and 0xFF
+                        return if (isLE) a or (b shl 8) else (a shl 8) or b
+                    }
+                    fun readU32(offset: Int): Long {
+                        var v = 0L
+                        for (i in 0..3) {
+                            val b = bytes[offset + i].toLong() and 0xFF
+                            v = if (isLE) v or (b shl (i * 8)) else (v shl 8) or b
+                        }
+                        return v
+                    }
+                    fun readU64(offset: Int): Long {
+                        var v = 0L
+                        for (i in 0..7) {
+                            val b = bytes[offset + i].toLong() and 0xFF
+                            v = if (isLE) v or (b shl (i * 8)) else (v shl 8) or b
+                        }
+                        return v
+                    }
+
+                    val phoff     = if (is64bit) readU64(32).toInt() else readU32(28).toInt()
+                    val phentsize = readU16(if (is64bit) 54 else 42)
+                    val phnum     = readU16(if (is64bit) 56 else 44)
+
+                    val PT_LOAD = 1L
+                    for (i in 0 until phnum) {
+                        val phBase = phoff + i * phentsize
+                        if (phBase + phentsize > bytes.size) break
+                        val pType = readU32(phBase)
+                        if (pType == PT_LOAD) {
+                            return if (is64bit) readU64(phBase + 48) else readU32(phBase + 28)
+                        }
+                    }
+                } catch (e: Exception) {
+                    // Not readable as ELF
+                }
+                return -1L
+            }
+
+            if (strippedLibsDir.exists()) {
+                project.fileTree(strippedLibsDir) {
+                    include("**/*.so")
+                }.forEach { file ->
+                    if (archsToProcess.any { file.path.contains("/$it/") }) {
+                        filesChecked++
+                        val currentAlign = readElfLoadAlignment(file)
+                        when {
+                            currentAlign == -1L -> {
+                                println("  ⚠ Skipping (not ELF): ${file.name} (${file.parentFile.name})")
+                                filesSkipped++
+                            }
+                            currentAlign >= 16384L -> {
+                                println("  ✓ Already aligned ($currentAlign): ${file.name} (${file.parentFile.name})")
+                                filesSkipped++
+                            }
+                            else -> {
+                                println("  ↻ Needs alignment ($currentAlign → 16384): ${file.name} (${file.parentFile.name})")
+                                try {
+                                    val tempFile = File("${file.absolutePath}.tmp")
+                                    val processBuilder = ProcessBuilder(
+                                        "python3",
+                                        alignScript.absolutePath,
+                                        file.absolutePath,
+                                        tempFile.absolutePath
+                                    )
+                                    val process = processBuilder.start()
+                                    val exitCode = process.waitFor()
+
+                                    if (exitCode == 0 && tempFile.exists()) {
+                                        file.delete()
+                                        tempFile.renameTo(file)
+                                        println("    ✓ Aligned successfully")
+                                        filesAligned++
+                                    } else {
+                                        println("    ✗ Alignment failed")
+                                        if (tempFile.exists()) tempFile.delete()
+                                    }
+                                } catch (e: Exception) {
+                                    println("    ✗ Error: ${e.message}")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            println("=== Realignment complete: $filesChecked checked, $filesAligned patched, $filesSkipped skipped ===")
+        }
+    }
+}
+// ── END 16KB ELF Alignment ────────────────────────────────────────────────────
 
 // ── Dependencies ─────────────────────────────────────────────────────────────
 dependencies {

@@ -27,3 +27,23 @@
 -keep public class * extends java.lang.Exception
 -keep class com.google.firebase.crashlytics.** { *; }
 -dontwarn com.google.firebase.crashlytics.**
+
+# ── R8 missing-class suppressions ─────────────────────────────────────────────
+# These are annotation-processor / compile-time-only types that do not exist on
+# Android at runtime. R8 sees them referenced in library bytecode and warns;
+# suppress them so the release build does not fail.
+
+# javax.lang.model — annotation processing API, JDK-only, not on Android
+-dontwarn javax.lang.model.**
+
+# com.google.protobuf annotation types (ProtoField, ProtoPresenceBits, etc.)
+# shipped in protobuf-javalite source but stripped from the runtime AAR
+-dontwarn com.google.protobuf.Internal$ProtoMethodMayReturnNull
+-dontwarn com.google.protobuf.Internal$ProtoNonnullApi
+-dontwarn com.google.protobuf.ProtoField
+-dontwarn com.google.protobuf.ProtoPresenceBits
+-dontwarn com.google.protobuf.ProtoPresenceCheckedField
+
+# autovalue / javapoet shaded inside autovalue — annotation-processor internals
+# referenced via reflection; safe to ignore on Android
+-dontwarn autovalue.shaded.**

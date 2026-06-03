@@ -42,7 +42,7 @@ Java_com_techducat_llama_LlamaAndroid_nativeLoad(
     llama_model_params mparams = llama_model_default_params();
     mparams.n_gpu_layers = 0; // CPU-only; set > 0 when Vulkan is available
 
-    llama_model* model = llama_load_model_from_file(modelPath, mparams);
+    llama_model* model = llama_model_load_from_file(modelPath, mparams);
     env->ReleaseStringUTFChars(jModelPath, modelPath);
 
     if (!model) {
@@ -54,9 +54,9 @@ Java_com_techducat_llama_LlamaAndroid_nativeLoad(
     cparams.n_ctx     = 2048;
     cparams.n_threads = 4;
 
-    llama_context* ctx = llama_new_context_with_model(model, cparams);
+    llama_context* ctx = llama_init_from_model(model, cparams);
     if (!ctx) {
-        llama_free_model(model);
+        llama_model_free(model);
         LOGE("Failed to create context");
         return 0L;
     }
@@ -83,8 +83,10 @@ Java_com_techducat_llama_LlamaAndroid_nativeInfer(
     // Tokenise
     const int nPromptTokensMax = 1024;
     std::vector<llama_token> tokens(nPromptTokensMax);
+    const llama_model* model = llama_get_model(handle->ctx);
+    const llama_vocab* vocab = llama_model_get_vocab(model);
     int nTokens = llama_tokenize(
-        llama_get_model(handle->ctx),
+        vocab,
         prompt.c_str(), static_cast<int32_t>(prompt.size()),
         tokens.data(), nPromptTokensMax,
         /*add_special=*/true, /*parse_special=*/false
@@ -103,7 +105,6 @@ Java_com_techducat_llama_LlamaAndroid_nativeInfer(
     // Generate up to 512 tokens
     std::string output;
     const int maxNewTokens = 512;
-    const llama_model* model = llama_get_model(handle->ctx);
 
     for (int i = 0; i < maxNewTokens; ++i) {
         llama_token newToken = llama_sampler_sample(
@@ -111,10 +112,10 @@ Java_com_techducat_llama_LlamaAndroid_nativeInfer(
             handle->ctx, -1
         );
 
-        if (llama_token_is_eog(model, newToken)) break;
+        if (llama_vocab_is_eog(vocab, newToken)) break;
 
         char buf[256];
-        int nChars = llama_token_to_piece(model, newToken, buf, sizeof(buf), 0, true);
+        int nChars = llama_token_to_piece(vocab, newToken, buf, sizeof(buf), 0, true);
         if (nChars < 0) break;
         output.append(buf, nChars);
 
@@ -122,7 +123,7 @@ Java_com_techducat_llama_LlamaAndroid_nativeInfer(
         if (llama_decode(handle->ctx, nextBatch) != 0) break;
     }
 
-    llama_kv_cache_clear(handle->ctx);
+    llama_memory_clear(llama_get_memory(handle->ctx), /*data=*/false);
     return env->NewStringUTF(output.c_str());
 }
 
@@ -134,7 +135,7 @@ Java_com_techducat_llama_LlamaAndroid_nativeFree(
     if (ctxPtr == 0L) return;
     auto* handle = reinterpret_cast<LlamaHandle*>(ctxPtr);
     llama_free(handle->ctx);
-    llama_free_model(handle->model);
+    llama_model_free(handle->model);
     delete handle;
     LOGI("Model freed");
 }

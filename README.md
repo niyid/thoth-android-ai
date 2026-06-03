@@ -238,3 +238,35 @@ FirebaseCrashlytics.getInstance().setCrashlyticsCollectionEnabled(false)
 ```
 
 Call this before `FirebaseApp.initializeApp()` completes, or persist the user's choice in `ThotPreferences` and apply it in `ThotApplication.onCreate()`.
+
+## On-device providers
+
+Thot supports two free, fully offline LLM providers that run entirely on the device — no API key, no internet, no cost.
+
+### MediaPipe / Gemma (.task models)
+
+1. Download a Gemma `.task` model from:
+   https://ai.google.dev/edge/mediapipe/solutions/genai/llm_inference/android
+   Recommended: **Gemma 3 1B IT INT4** (~600 MB, fast on mid-range phones)
+
+2. Copy the `.task` file to your device (e.g. `/sdcard/Download/gemma3-1b-it-int4.task`).
+
+3. In Thot → Settings, select **MediaPipe (Gemma)** and enter the full file path. Tap **Save**.
+
+### llama.cpp / GGUF models
+
+> **One-time developer step** (only needed when building from source):
+> ```bash
+> git submodule update --init --recursive
+> ```
+> This pulls `third_party/llama.cpp`. The NDK build runs automatically after that.
+> NDK version **27.2.12479018** must be installed (`sdkmanager "ndk;27.2.12479018"`).
+
+1. Download a GGUF model from:
+   https://huggingface.co/models?library=gguf
+   Recommended: **Llama 3.2 1B Instruct Q4_K_M** (~800 MB)
+
+2. Copy the `.gguf` file to your device (e.g. `/sdcard/Download/llama-3.2-1b-instruct-q4_k_m.gguf`).
+
+3. In Thot → Settings, select **llama.cpp (GGUF)** and enter the full file path. Tap **Save**.
+

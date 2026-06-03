@@ -1,10 +1,10 @@
 package com.techducat.thot.local
 
 import android.content.Context
-import com.shubham0204.llmandroid.Llama
+import com.techducat.llama.LlamaAndroid
 
 /**
- * On-device inference using llama.cpp via JNI (shubham0204/llama.cpp_Android).
+ * On-device inference using llama.cpp compiled from source via NDK.
  *
  * Supports any GGUF-format model (Llama, Mistral, Phi, Qwen, Gemma, etc.).
  * Download models from:
@@ -19,9 +19,9 @@ import com.shubham0204.llmandroid.Llama
  * instance. If the model path changes (user updates settings), call [reset] to
  * force a reload on the next inference call.
  */
-class LlamaCppProvider(private val context: Context) {
+class LlamaCppProvider(@Suppress("unused") private val context: Context) {
 
-    private var llama: Llama? = null
+    private val llama = LlamaAndroid()
     private var loadedModelPath: String = ""
 
     /**
@@ -40,7 +40,7 @@ class LlamaCppProvider(private val context: Context) {
 
         return try {
             ensureLoaded(modelPath)
-            llama!!.getResponse(prompt)
+            llama.infer(prompt)
         } catch (e: Exception) {
             "⚠️ llama.cpp error: ${e.message}\n\n" +
             "Check that the model file path is correct and the file is a valid GGUF model."
@@ -49,13 +49,13 @@ class LlamaCppProvider(private val context: Context) {
 
     /** Force the model to be reloaded on next call (e.g. after path change). */
     fun reset() {
-        llama = null
+        llama.free()
         loadedModelPath = ""
     }
 
     private fun ensureLoaded(modelPath: String) {
-        if (llama != null && loadedModelPath == modelPath) return
-        llama = Llama(modelPath, nThreads = 4)
+        if (loadedModelPath == modelPath) return
+        llama.load(modelPath)
         loadedModelPath = modelPath
     }
 }

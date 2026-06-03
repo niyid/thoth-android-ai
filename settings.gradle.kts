@@ -10,10 +10,10 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        // JitPack — required for llama.cpp_Android (on-device GGUF inference)
-        maven { url = uri("https://jitpack.io") }
+        // JitPack removed — llama.cpp is now built from source via :llama-android NDK module
     }
 }
 
 rootProject.name = "Thot"
 include(":app")
+include(":llama-android")

@@ -175,9 +175,8 @@ dependencies {
     // ── On-device LLM providers ───────────────────────────────────────────────
     // MediaPipe LLM Inference (Google AI Edge / Gemma .task models)
     implementation("com.google.mediapipe:tasks-genai:0.10.22")
-    // llama.cpp Android JNI bindings (GGUF models — Llama, Mistral, Phi, etc.)
-    // Published via JitPack; repository added in settings.gradle.kts
-    implementation("com.github.shubham0204:llama.cpp_Android:0.0.1-alpha05")
+    // llama.cpp built from source via NDK — see :llama-android module
+    implementation(project(":llama-android"))
     // ─────────────────────────────────────────────────────────────────────────
 
     // JSON

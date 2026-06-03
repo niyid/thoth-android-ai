@@ -70,12 +70,15 @@ class MainActivity : AppCompatActivity() {
     private fun loadSettings() {
         binding.etApiKey.setText(prefs.openAiApiKey)
         binding.etAnthropicApiKey.setText(prefs.anthropicApiKey)
+        binding.etLocalModelPath.setText(prefs.localModelPath)
         binding.switchOverlay.isChecked = prefs.overlayEnabled
         binding.spinnerProvider.setSelection(
             when (prefs.provider) {
                 ProviderType.LOCAL -> 0
                 ProviderType.OPENAI -> 1
                 ProviderType.ANTHROPIC -> 2
+                ProviderType.MEDIAPIPE -> 3
+                ProviderType.LLAMACPP -> 4
             }
         )
         updateApiKeyVisibility(binding.spinnerProvider.selectedItemPosition)
@@ -104,6 +107,7 @@ class MainActivity : AppCompatActivity() {
     private fun updateApiKeyVisibility(position: Int) {
         binding.tilApiKey.visibility = if (position == 1) View.VISIBLE else View.GONE
         binding.tilAnthropicApiKey.visibility = if (position == 2) View.VISIBLE else View.GONE
+        binding.tilLocalModelPath.visibility = if (position == 3 || position == 4) View.VISIBLE else View.GONE
     }
 
     // ── Permissions ──────────────────────────────────────────────────────────
@@ -170,9 +174,12 @@ class MainActivity : AppCompatActivity() {
     private fun saveSettings() {
         prefs.openAiApiKey = binding.etApiKey.text?.toString()?.trim() ?: ""
         prefs.anthropicApiKey = binding.etAnthropicApiKey.text?.toString()?.trim() ?: ""
+        prefs.localModelPath = binding.etLocalModelPath.text?.toString()?.trim() ?: ""
         prefs.provider = when (binding.spinnerProvider.selectedItemPosition) {
             1 -> ProviderType.OPENAI
             2 -> ProviderType.ANTHROPIC
+            3 -> ProviderType.MEDIAPIPE
+            4 -> ProviderType.LLAMACPP
             else -> ProviderType.LOCAL
         }
         val overlayEnabled = binding.switchOverlay.isChecked
@@ -200,6 +207,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         Toast.makeText(this, getString(R.string.toast_settings_saved), Toast.LENGTH_SHORT).show()
+        // Discard any cached on-device model so the next inference reloads from the new path.
+        thotProvider.resetLocalProviders()
     }
 
     // ── Test ─────────────────────────────────────────────────────────────────

@@ -10,7 +10,7 @@ Thot is an OS-level AI assistant that draws a floating button over **every app**
 Any App  →  AccessibilityService reads visible text
          →  Floating overlay button (WindowManager TYPE_APPLICATION_OVERLAY)
          →  User taps Explain / Summarize / Respond / custom
-         →  ThotCoreProvider dispatches to LOCAL or OPENAI backend
+         →  ThotCoreProvider dispatches to LOCAL / MEDIAPIPE / LLAMACPP / OPENAI / ANTHROPIC backend
          →  Response shown inline in the overlay panel
 ```
 
@@ -30,9 +30,12 @@ app/src/main/java/com/techducat/thot/
 │   ├── ThotCoreProvider.kt          ← Routes tasks to LOCAL / OPENAI
 │   └── BaseThotActivity.kt          ← Optional base class for host activities
 ├── remote/
-│   └── OpenAiClient.kt               ← OkHttp → GPT-4o
+│   ├── OpenAiClient.kt               ← OkHttp → GPT-4o
+│   └── AnthropicClient.kt            ← OkHttp → Claude
 ├── local/
-│   └── LocalLLMProvider.kt           ← Offline rule-based fallback
+│   ├── LocalLLMProvider.kt           ← Offline rule-based fallback (placeholder)
+│   ├── MediaPipeLLMProvider.kt       ← On-device inference via Google AI Edge / Gemma
+│   └── LlamaCppProvider.kt           ← On-device inference via llama.cpp / GGUF models
 ├── chrono/
 │   ├── ChronoScript.kt               ← Schedulable automation unit
 │   ├── ChronoManager.kt              ← Coroutine-based scheduler
@@ -70,7 +73,33 @@ Both keys can also be supplied as environment variables with the same names — 
 
 > **Note:** Build-time keys only pre-seed the app on first launch. Any key you enter manually in the app takes permanent precedence and will not be overwritten.
 
-### 3. Grant permissions (first launch)
+### 3. On-device providers (free, no API key required)
+
+Both on-device providers are fully wired and ready to use — no code changes needed.
+
+#### MediaPipe / Gemma (Google AI Edge)
+
+Runs Google's Gemma models on-device. Good for general-purpose chat and explanation tasks.
+
+1. Download a compatible `.task` model file (e.g. Gemma 3 1B IT INT4, ~600 MB):
+   https://ai.google.dev/edge/mediapipe/solutions/genai/llm_inference/android
+2. Copy the file to your device (e.g. `/sdcard/Download/gemma3-1b-it-int4.task`)
+3. In Thot Settings: select **MediaPipe / Gemma**, enter the full file path, tap Save
+
+#### llama.cpp / GGUF models
+
+Runs any GGUF-format model (Llama, Mistral, Phi, Qwen, Gemma, etc.) via llama.cpp JNI.
+
+1. Download a `.gguf` model from Hugging Face — recommended starting points:
+   - Llama 3.2 1B Instruct Q4_K_M (~800 MB, fast, low RAM)
+   - Phi-3 Mini 4K Instruct Q4_K_M (~2 GB, good quality)
+   - Mistral 7B Instruct v0.3 Q4_K_M (~4 GB, best quality)
+   https://huggingface.co/models?library=gguf
+2. Copy the file to your device (e.g. `/sdcard/Download/llama-3.2-1b-instruct-q4_k_m.gguf`)
+3. In Thot Settings: select **llama.cpp / GGUF**, enter the full file path, tap Save
+
+### 4. Grant permissions (first launch)
+
 The app will prompt for both:
 
 1. **Overlay permission** — allows the floating button to appear over other apps
@@ -79,7 +108,7 @@ The app will prompt for both:
 2. **Accessibility service** — allows Thot to read screen content
    - Settings → Accessibility → Installed apps → Thot AI Assistant → Enable
 
-### 4. Build and run
+### 5. Build and run
 ```
 ./gradlew assembleDebug
 adb install app/build/outputs/apk/debug/app-debug.apk

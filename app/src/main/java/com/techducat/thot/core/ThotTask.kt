@@ -30,7 +30,11 @@ data class ThotTask(
 enum class ProviderType {
     LOCAL,
     OPENAI,
-    ANTHROPIC;
+    ANTHROPIC,
+    /** On-device inference via Google AI Edge / MediaPipe LLM Inference API (Gemma). */
+    MEDIAPIPE,
+    /** On-device inference via llama.cpp JNI bindings. */
+    LLAMACPP;
 
     companion object {
         fun fromString(value: String): ProviderType =

@@ -37,15 +37,24 @@
 
     <!-- Providers -->
     <string-array name="provider_options">
-        <item>Local (offline)</item>
+        <item>Local (offline, placeholder)</item>
         <item>OpenAI GPT-4o</item>
         <item>Anthropic Claude</item>
+        <item>MediaPipe / Gemma (on-device)</item>
+        <item>llama.cpp / GGUF (on-device)</item>
     </string-array>
     <string-array name="provider_values">
         <item>LOCAL</item>
         <item>OPENAI</item>
         <item>ANTHROPIC</item>
+        <item>MEDIAPIPE</item>
+        <item>LLAMACPP</item>
     </string-array>
+
+    <!-- On-device model path (MediaPipe / llama.cpp) -->
+    <string name="label_local_model_path">Model file path</string>
+    <string name="hint_local_model_path">/sdcard/Download/model.task  or  model.gguf</string>
+    <string name="helper_local_model_path">Full path to the .task (MediaPipe) or .gguf (llama.cpp) file on this device</string>
 
     <!-- ═══════════════════════════════════════════════════════════════════════
          Prominent Disclosure Dialog  (Google Play policy requirement)

@@ -50,6 +50,10 @@ class ThotPreferences(context: Context) {
         get() = prefs.getInt(KEY_FAB_Y, 200)
         set(value) = prefs.edit { putInt(KEY_FAB_Y, value) }
 
+    var localModelPath: String
+        get() = prefs.getString(KEY_LOCAL_MODEL_PATH, "") ?: ""
+        set(value) = prefs.edit { putString(KEY_LOCAL_MODEL_PATH, value) }
+
     companion object {
         private const val PREFS_NAME = "thot_settings"
         private const val KEY_OPENAI_API_KEY = "openai_api_key"
@@ -58,5 +62,6 @@ class ThotPreferences(context: Context) {
         private const val KEY_OVERLAY = "overlay_enabled"
         private const val KEY_FAB_X = "fab_x"
         private const val KEY_FAB_Y = "fab_y"
+        private const val KEY_LOCAL_MODEL_PATH = "local_model_path"
     }
 }

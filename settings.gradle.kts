@@ -10,6 +10,8 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // JitPack — required for llama.cpp_Android (on-device GGUF inference)
+        maven { url = uri("https://jitpack.io") }
     }
 }
 

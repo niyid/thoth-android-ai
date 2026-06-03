@@ -200,6 +200,26 @@
 
                 </com.google.android.material.textfield.TextInputLayout>
 
+                <!-- Model file path (shown only when MediaPipe or llama.cpp selected) -->
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/tilLocalModelPath"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="@string/hint_local_model_path"
+                    android:visibility="gone"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
+                    app:helperText="@string/helper_local_model_path"
+                    android:layout_marginBottom="8dp">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etLocalModelPath"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="textUri"
+                        android:imeOptions="actionDone" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

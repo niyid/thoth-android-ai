@@ -10,7 +10,7 @@
 //    2. Android NDK must be installed (SDK Manager → SDK Tools → NDK).
 //       The version declared in ndkVersion below is enforced; install it
 //       via Android Studio or:
-//         sdkmanager "ndk;27.2.12479018"
+//         sdkmanager "ndk;29.0.13113456"
 //
 //  After the submodule is present, Gradle builds the native .so files
 //  automatically as part of the normal assemble task.
@@ -25,7 +25,7 @@ android {
     namespace  = "com.techducat.llama"
     compileSdk = 36
 
-    ndkVersion = "27.2.12479018"
+    ndkVersion = "29.0.13113456"
 
     defaultConfig {
         minSdk = 26

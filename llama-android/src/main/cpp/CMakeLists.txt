@@ -62,6 +62,38 @@ file(GLOB _GGML_LLAMAFILE_SRCS
 )
 list(APPEND GGML_SOURCES ${_GGML_LLAMAFILE_SRCS})
 
+# gguf — provides ALL gguf_* symbols (gguf_init_empty, gguf_free, gguf_find_key, etc.)
+# This file is required; fail loudly if it is absent rather than silently producing
+# a broken .so with hundreds of undefined symbols at link time.
+if(EXISTS "${LLAMA_SRC}/ggml/src/gguf.cpp")
+    list(APPEND GGML_SOURCES "${LLAMA_SRC}/ggml/src/gguf.cpp")
+elseif(EXISTS "${LLAMA_SRC}/src/gguf.cpp")
+    list(APPEND GGML_SOURCES "${LLAMA_SRC}/src/gguf.cpp")
+else()
+    message(FATAL_ERROR
+        "gguf.cpp not found under ${LLAMA_SRC}.\n"
+        "Run: git submodule update --init --recursive"
+    )
+endif()
+
+# ggml-dl — provides dl_load_library / dl_get_sym / dl_error used by ggml-backend-reg.cpp
+# The filename varies across revisions (ggml-dl.cpp, ggml-dynamic-loader.cpp, etc.)
+# so we glob rather than hard-code.
+file(GLOB _GGML_DL_SRCS
+    "${LLAMA_SRC}/ggml/src/ggml-dl*.cpp"
+    "${LLAMA_SRC}/ggml/src/ggml-dl*.c"
+    "${LLAMA_SRC}/ggml/src/ggml-dynamic*.cpp"
+)
+if(_GGML_DL_SRCS)
+    list(APPEND GGML_SOURCES ${_GGML_DL_SRCS})
+else()
+    message(WARNING
+        "No ggml-dl*.cpp found in ${LLAMA_SRC}/ggml/src/. "
+        "If the build fails with undefined dl_load_library / dl_get_sym / dl_error, "
+        "locate the file providing those symbols and add it here."
+    )
+endif()
+
 # Optional top-level ggml extras
 add_if_exists(GGML_SOURCES "${LLAMA_SRC}/ggml/src/ggml-opt.cpp")
 

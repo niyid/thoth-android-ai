@@ -53,6 +53,9 @@ file(GLOB_RECURSE _GGML_ARCH_SRCS
     "${LLAMA_SRC}/ggml/src/ggml-cpu/arch/*.c"
     "${LLAMA_SRC}/ggml/src/ggml-cpu/arch/*.cpp"
 )
+# Include arch/ sources for ALL ABIs — x86/quants.c provides the same
+# ggml_vec_dot_* symbols for x86_64 that arm/quants.c provides for ARM.
+# Skipping any ABI here causes undefined quantization kernel symbols at link time.
 list(APPEND GGML_SOURCES ${_GGML_ARCH_SRCS})
 
 # llamafile/ — may contain additional scalar kernels referenced by quants.c

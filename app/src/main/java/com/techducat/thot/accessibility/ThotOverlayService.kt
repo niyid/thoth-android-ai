@@ -25,6 +25,7 @@ import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.view.ContextThemeWrapper
 import androidx.core.app.NotificationCompat
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
@@ -143,7 +144,7 @@ class ThotOverlayService : Service() {
     private fun addFab() {
         if (fabView != null) return
 
-        val inflater = LayoutInflater.from(this)
+        val inflater = LayoutInflater.from(ContextThemeWrapper(this, R.style.Theme_Thot))
         fabView = inflater.inflate(R.layout.overlay_button, null)
 
         val params = WindowManager.LayoutParams(
@@ -176,7 +177,7 @@ class ThotOverlayService : Service() {
         if (isPanelVisible) return
         isPanelVisible = true
 
-        val inflater = LayoutInflater.from(this)
+        val inflater = LayoutInflater.from(ContextThemeWrapper(this, R.style.Theme_Thot))
         val view = inflater.inflate(R.layout.overlay_panel, null)
         panelView = view
 

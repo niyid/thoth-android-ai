@@ -11,7 +11,7 @@ package com.techducat.thot.core
 data class ThotTask(
     val prompt: String,
     val screenContext: String = "",
-    val provider: ProviderType = ProviderType.LOCAL
+    val provider: ProviderType = ProviderType.ANTHROPIC
 ) {
     /** Build the full prompt sent to the model, including any captured screen context. */
     fun buildFullPrompt(): String = if (screenContext.isBlank()) {

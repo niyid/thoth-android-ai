@@ -34,6 +34,19 @@ class MainActivity : AppCompatActivity() {
         ActivityResultContracts.RequestPermission()
     ) { /* result noted; overlay service notification will show if granted */ }
 
+    // Launcher for picking a GGUF / .task model file from device storage
+    private val modelFilePickerLauncher = registerForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri == null) return@registerForActivityResult
+        // Persist read permission so the path survives reboots
+        contentResolver.takePersistableUriPermission(
+            uri,
+            android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+        )
+        binding.etLocalModelPath.setText(uri.toString())
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -89,6 +102,20 @@ class MainActivity : AppCompatActivity() {
         binding.btnOpenAccessibility.setOnClickListener { showAccessibilityDisclosure() }
         binding.btnSave.setOnClickListener { saveSettings() }
         binding.btnTest.setOnClickListener { runTest() }
+        binding.btnBrowseModel.setOnClickListener {
+            // Open the system file picker; accept any file type so the user
+            // can navigate to .gguf or .task files regardless of MIME type.
+            modelFilePickerLauncher.launch(arrayOf("*/*"))
+        }
+        binding.btnDownloadLlama1b.setOnClickListener {
+            openUrl(getString(R.string.url_dl_llama_1b))
+        }
+        binding.btnDownloadLlama3b.setOnClickListener {
+            openUrl(getString(R.string.url_dl_llama_3b))
+        }
+        binding.btnDownloadPhi3.setOnClickListener {
+            openUrl(getString(R.string.url_dl_phi3))
+        }
 
         binding.spinnerProvider.onItemSelectedListener =
             object : android.widget.AdapterView.OnItemSelectedListener {
@@ -107,7 +134,16 @@ class MainActivity : AppCompatActivity() {
     private fun updateApiKeyVisibility(position: Int) {
         binding.tilApiKey.visibility = if (position == 1) View.VISIBLE else View.GONE
         binding.tilAnthropicApiKey.visibility = if (position == 2) View.VISIBLE else View.GONE
-        binding.tilLocalModelPath.visibility = if (position == 3 || position == 4) View.VISIBLE else View.GONE
+        val showLocalPath = position == 3 || position == 4
+        binding.tilLocalModelPath.visibility = if (showLocalPath) View.VISIBLE else View.GONE
+        binding.btnBrowseModel.visibility = if (showLocalPath) View.VISIBLE else View.GONE
+        // Show download shortcuts only for llama.cpp (position 4), where a manual
+        // model file is required. MediaPipe uses .task files which aren't on HF.
+        val showDownloads = position == 4
+        binding.tvDownloadLabel.visibility = if (showDownloads) View.VISIBLE else View.GONE
+        binding.btnDownloadLlama1b.visibility = if (showDownloads) View.VISIBLE else View.GONE
+        binding.btnDownloadLlama3b.visibility = if (showDownloads) View.VISIBLE else View.GONE
+        binding.btnDownloadPhi3.visibility = if (showDownloads) View.VISIBLE else View.GONE
     }
 
     // ── Permissions ──────────────────────────────────────────────────────────
@@ -209,6 +245,13 @@ class MainActivity : AppCompatActivity() {
         Toast.makeText(this, getString(R.string.toast_settings_saved), Toast.LENGTH_SHORT).show()
         // Discard any cached on-device model so the next inference reloads from the new path.
         thotProvider.resetLocalProviders()
+    }
+
+    // ── Downloads ────────────────────────────────────────────────────────────
+
+    /** Open [url] in the device browser so the user can download a model file. */
+    private fun openUrl(url: String) {
+        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
     }
 
     // ── Test ─────────────────────────────────────────────────────────────────

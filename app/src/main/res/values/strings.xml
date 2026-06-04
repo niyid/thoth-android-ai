@@ -54,7 +54,16 @@
     <!-- On-device model path (MediaPipe / llama.cpp) -->
     <string name="label_local_model_path">Model file path</string>
     <string name="hint_local_model_path">/sdcard/Download/model.task  or  model.gguf</string>
-    <string name="helper_local_model_path">Full path to the .task (MediaPipe) or .gguf (llama.cpp) file on this device</string>
+    <string name="helper_local_model_path">Tap Browse to pick a .gguf (llama.cpp) or .task (MediaPipe) file — or paste a path manually</string>
+
+    <!-- Direct Hugging Face download links for recommended GGUF models -->
+    <string name="label_download_models">Download a model (opens browser):</string>
+    <string name="label_dl_llama_1b">Llama 3.2 1B — 808 MB (fastest)</string>
+    <string name="url_dl_llama_1b">https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF/resolve/main/Llama-3.2-1B-Instruct-Q4_K_M.gguf</string>
+    <string name="label_dl_llama_3b">Llama 3.2 3B — 2.0 GB (balanced)</string>
+    <string name="url_dl_llama_3b">https://huggingface.co/bartowski/Llama-3.2-3B-Instruct-GGUF/resolve/main/Llama-3.2-3B-Instruct-Q4_K_M.gguf</string>
+    <string name="label_dl_phi3">Phi-3 Mini 4K — 2.2 GB (strong reasoning)</string>
+    <string name="url_dl_phi3">https://huggingface.co/bartowski/Phi-3-mini-4k-instruct-GGUF/resolve/main/Phi-3-mini-4k-instruct-Q4_K_M.gguf</string>
 
     <!-- ═══════════════════════════════════════════════════════════════════════
          Prominent Disclosure Dialog  (Google Play policy requirement)

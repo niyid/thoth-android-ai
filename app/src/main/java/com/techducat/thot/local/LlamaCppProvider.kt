@@ -31,11 +31,16 @@ class LlamaCppProvider(@Suppress("unused") private val context: Context) {
     fun handle(prompt: String, modelPath: String): String {
         if (modelPath.isBlank()) {
             return "⚠️ llama.cpp / GGUF\n\n" +
-                "No model file path configured.\n\n" +
-                "In Thot Settings, enter the full path to your downloaded .gguf file " +
-                "(e.g. /sdcard/Download/llama-3.2-1b-instruct-q4_k_m.gguf).\n\n" +
-                "Download GGUF models at:\n" +
-                "https://huggingface.co/models?library=gguf"
+                "No model file selected.\n\n" +
+                "Tap the Browse button next to \"Model file path\" in Thot Settings " +
+                "to pick a .gguf file from your device — no manual path entry needed.\n\n" +
+                "Don't have a model yet? Tap a download link in Settings, " +
+                "or visit:\n" +
+                "https://huggingface.co/models?library=gguf\n\n" +
+                "Recommended starting models:\n" +
+                "• Llama 3.2 1B Q4_K_M (808 MB) — fastest, phones with 3 GB+ RAM\n" +
+                "• Llama 3.2 3B Q4_K_M (2 GB) — better quality, 6 GB+ RAM\n" +
+                "• Phi-3 Mini 4K Q4_K_M (2.2 GB) — great reasoning, 6 GB+ RAM"
         }
 
         return try {

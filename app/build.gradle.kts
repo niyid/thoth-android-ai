@@ -341,7 +341,7 @@ dependencies {
     // without any Firebase dependency on the classpath.
     //
     // If you later add GMS Maps, Auth, or Messaging, add them here too.
-    "playstoreImplementation"(platform("com.google.firebase:firebase-bom:33.7.0"))
+    "playstoreImplementation"(platform("com.google.firebase:firebase-bom:33.14.0"))
     "playstoreImplementation"("com.google.firebase:firebase-crashlytics-ktx")
     "playstoreImplementation"("com.google.firebase:firebase-analytics-ktx")
 

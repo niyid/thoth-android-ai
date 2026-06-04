@@ -12,6 +12,8 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import com.techducat.thot.R
 import com.techducat.thot.BuildConfig
 import com.techducat.thot.accessibility.ThotAccessibilityService
@@ -243,8 +245,13 @@ class MainActivity : AppCompatActivity() {
         }
 
         Toast.makeText(this, getString(R.string.toast_settings_saved), Toast.LENGTH_SHORT).show()
-        // Discard any cached on-device model so the next inference reloads from the new path.
-        thotProvider.resetLocalProviders()
+        // reset() calls blocking JNI (nativeFree) and LlmInference.close() — must not run on
+        // the main thread or it causes frame drops. Disable Save for the duration.
+        binding.btnSave.isEnabled = false
+        lifecycleScope.launch {
+            thotProvider.resetLocalProviders()
+            binding.btnSave.isEnabled = true
+        }
     }
 
     // ── Downloads ────────────────────────────────────────────────────────────

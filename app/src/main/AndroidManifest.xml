@@ -33,6 +33,19 @@
         android:theme="@style/Theme.Thot"
         tools:targetApi="31">
 
+        <!--
+            Opt out of the Concurrent Mark-Compact (CMC) GC introduced in ART on
+            Android 14+. CMC uses the userfaultfd kernel feature for concurrent
+            object compaction; on devices whose kernel does not support
+            userfaultfd MOVE ioctl (seen as "Connection timed out" in logcat) ART
+            falls back after a costly timeout on every GC cycle.
+            Forcing "generational_cc" (Concurrent Copying) avoids the timeout
+            entirely while still providing concurrent, low-pause collection.
+        -->
+        <meta-data
+            android:name="com.android.art.gc"
+            android:value="generational_cc" />
+
         <!-- ── Main entry point / Settings screen ── -->
         <activity
             android:name=".ui.MainActivity"

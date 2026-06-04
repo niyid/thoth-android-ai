@@ -3,15 +3,17 @@ package com.techducat.thot
 import android.app.Application
 import com.google.firebase.FirebaseApp
 import com.google.firebase.crashlytics.FirebaseCrashlytics
+import java.util.concurrent.Executors
 
 /**
  * Application entry point.
  *
- * Initialises Firebase / Crashlytics once at process start so that crashes
- * are captured from the very first activity, service, or broadcast receiver.
+ * Firebase / Crashlytics initialisation is intentionally deferred to a
+ * background thread so it does not contribute to the main-thread
+ * installContentProviders budget at cold start (was: 217 ms blocked).
  *
- * Registration: add  android:name=".ThotApplication"  to <application> in
- * AndroidManifest.xml (already done).
+ * FirebaseApp.initializeApp() is thread-safe; Crashlytics configuration
+ * methods are also safe to call off-main after initializeApp completes.
  */
 class ThotApplication : Application() {
 
@@ -21,12 +23,13 @@ class ThotApplication : Application() {
         // Firebase is only available in the playstore flavor.
         // F-Droid builds have no Firebase dependency on the classpath at runtime.
         if (!BuildConfig.IS_FDROID_BUILD) {
-            FirebaseApp.initializeApp(this)
-            FirebaseCrashlytics.getInstance().apply {
-                setCrashlyticsCollectionEnabled(true)
-                // Tag every report with the app version so you can filter by release
-                setCustomKey("version_name", BuildConfig.VERSION_NAME)
-                setCustomKey("version_code", BuildConfig.VERSION_CODE)
+            Executors.newSingleThreadExecutor().execute {
+                FirebaseApp.initializeApp(this)
+                FirebaseCrashlytics.getInstance().apply {
+                    setCrashlyticsCollectionEnabled(true)
+                    setCustomKey("version_name", BuildConfig.VERSION_NAME)
+                    setCustomKey("version_code", BuildConfig.VERSION_CODE)
+                }
             }
         }
     }

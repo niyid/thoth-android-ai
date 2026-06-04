@@ -11,7 +11,9 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.PixelFormat
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
@@ -83,7 +85,11 @@ class ThotOverlayService : Service() {
             return
         }
 
-        addFab()
+        // Post addFab() so it runs after the current frame is committed.
+        // Calling WindowManager.addView() synchronously inside onCreate() while
+        // a vsync is already in flight triggers "Already have a pending vsync
+        // event" warnings and can cause a missed frame on first draw.
+        Handler(Looper.getMainLooper()).post { addFab() }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_STICKY

@@ -70,10 +70,12 @@ class ThotCoreProvider(private val context: Context) : ThotContextProvider {
 
     /**
      * Discard any cached on-device model instances.
-     * Call this from MainActivity after the user saves a new model file path,
-     * so the next inference picks up the updated path.
+     * [mediaPipeProvider.reset] calls [LlmInference.close] and
+     * [llamaCppProvider.reset] calls [nativeFree] — both are blocking JNI /
+     * native operations that must NOT run on the main thread.
+     * Suspend until both are done so the caller can gate UI on completion.
      */
-    fun resetLocalProviders() {
+    suspend fun resetLocalProviders() = withContext(Dispatchers.IO) {
         mediaPipeProvider.reset()
         llamaCppProvider.reset()
     }

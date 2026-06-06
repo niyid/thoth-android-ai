@@ -23,7 +23,7 @@ plugins {
 android {
     namespace  = "com.techducat.llama"
     compileSdk = 36
-    ndkVersion = "29.0.13599879"
+    ndkVersion = "29.0.13113456"
 
     defaultConfig {
         minSdk = 26

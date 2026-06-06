@@ -1,6 +1,7 @@
 package com.techducat.thot.local
 
 import android.content.Context
+import android.util.Log
 import com.techducat.llama.LlamaAndroid
 
 /**
@@ -19,10 +20,11 @@ import com.techducat.llama.LlamaAndroid
  * instance. If the model path changes (user updates settings), call [reset] to
  * force a reload on the next inference call.
  */
-class LlamaCppProvider(@Suppress("unused") private val context: Context) {
+class LlamaCppProvider(private val context: Context) {
 
     private val llama = LlamaAndroid()
     private var loadedModelPath: String = ""
+    private var isModelLoaded: Boolean = false
 
     /**
      * Run inference on [prompt] synchronously.
@@ -47,6 +49,7 @@ class LlamaCppProvider(@Suppress("unused") private val context: Context) {
             ensureLoaded(modelPath)
             llama.infer(prompt)
         } catch (e: Exception) {
+            Log.e(TAG, "LlamaCpp inference error", e)
             "⚠️ llama.cpp error: ${e.message}\n\n" +
             "Check that the model file path is correct and the file is a valid GGUF model."
         }
@@ -54,13 +57,32 @@ class LlamaCppProvider(@Suppress("unused") private val context: Context) {
 
     /** Force the model to be reloaded on next call (e.g. after path change). */
     fun reset() {
-        llama.free()
+        if (isModelLoaded) {
+            try {
+                llama.free()
+            } catch (e: Exception) {
+                Log.w(TAG, "LlamaCpp free() error (ignored): ${e.message}")
+            }
+        }
         loadedModelPath = ""
+        isModelLoaded = false
     }
 
     private fun ensureLoaded(modelPath: String) {
-        if (loadedModelPath == modelPath) return
+        if (isModelLoaded && loadedModelPath == modelPath) return
+        // Free existing model before loading a new one
+        if (isModelLoaded) {
+            try { llama.free() } catch (e: Exception) {
+                Log.w(TAG, "LlamaCpp free() before reload (ignored): ${e.message}")
+            }
+            isModelLoaded = false
+        }
         llama.load(modelPath)
         loadedModelPath = modelPath
+        isModelLoaded = true
+    }
+
+    companion object {
+        private const val TAG = "LlamaCppProvider"
     }
 }

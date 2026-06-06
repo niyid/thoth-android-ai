@@ -29,13 +29,12 @@ import androidx.appcompat.view.ContextThemeWrapper
 import androidx.core.app.NotificationCompat
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
+import com.techducat.thot.BuildConfig
 import com.techducat.thot.R
 import com.techducat.thot.core.ThotCoreProvider
 import com.techducat.thot.core.ThotTask
 import com.techducat.thot.settings.ThotPreferences
 import com.techducat.thot.ui.MainActivity
-import com.google.firebase.crashlytics.FirebaseCrashlytics
-import com.techducat.thot.BuildConfig
 
 /**
  * Foreground service that draws two overlay windows via [WindowManager]:
@@ -48,6 +47,10 @@ import com.techducat.thot.BuildConfig
  *
  * Must be started as a foreground service (Android 8+) to remain alive while
  * other apps are in the foreground.
+ *
+ * Firebase imports are intentionally absent here — they are only on the classpath
+ * for the `playstore` flavor. Non-fatal reporting uses the [reportNonFatal] helper
+ * which performs class loading reflectively so fdroid builds compile cleanly.
  */
 class ThotOverlayService : Service() {
 
@@ -306,13 +309,15 @@ class ThotOverlayService : Service() {
             panel.findViewById<TextView>(R.id.tvResponse).text = result
             panel.findViewById<View>(R.id.scrollResponse).visibility = View.VISIBLE
             panel.findViewById<MaterialButton>(R.id.btnCopyResponse).visibility = View.VISIBLE
-            // Report provider errors as non-fatals
+            // Report provider errors as non-fatals (playstore only — no Firebase on fdroid)
             if (result.startsWith("Error:") && !BuildConfig.IS_FDROID_BUILD) {
-                FirebaseCrashlytics.getInstance().apply {
-                    setCustomKey("provider", prefs.provider.name)
-                    setCustomKey("prompt_length", userPrompt.length)
-                    recordException(RuntimeException("Overlay LLM call failed: $result"))
-                }
+                reportNonFatal(
+                    keys = mapOf(
+                        "provider" to prefs.provider.name,
+                        "prompt_length" to userPrompt.length.toString()
+                    ),
+                    exception = RuntimeException("Overlay LLM call failed: $result")
+                )
             }
         }
     }
@@ -407,5 +412,26 @@ class ThotOverlayService : Service() {
         private const val TAG = "ThotOverlay"
         private const val NOTIF_CHANNEL_ID = "thot_overlay_channel"
         private const val NOTIF_ID = 1001
+
+        /**
+         * Report a non-fatal exception to Firebase Crashlytics via reflection.
+         * Safe to call from fdroid builds — the block is already guarded by
+         * [BuildConfig.IS_FDROID_BUILD] at the call site; this helper additionally
+         * catches [ClassNotFoundException] so a missing dependency never crashes the app.
+         */
+        fun reportNonFatal(keys: Map<String, String>, exception: Exception) {
+            try {
+                val cls = Class.forName("com.google.firebase.crashlytics.FirebaseCrashlytics")
+                val instance = cls.getMethod("getInstance").invoke(null)
+                for ((k, v) in keys) {
+                    cls.getMethod("setCustomKey", String::class.java, String::class.java)
+                        .invoke(instance, k, v)
+                }
+                cls.getMethod("recordException", Throwable::class.java)
+                    .invoke(instance, exception)
+            } catch (e: Exception) {
+                Log.w(TAG, "Crashlytics non-fatal report failed: ${e.message}")
+            }
+        }
     }
 }

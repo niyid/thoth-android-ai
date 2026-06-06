@@ -1,19 +1,18 @@
 // ============================================================
-//  :llama-android
+//  llama-android — NDK module
 //
-//  Android library module that builds llama.cpp from source
-//  via the NDK and exposes a minimal Kotlin API.
+//  Builds llama.cpp from source and exposes a Kotlin JNI
+//  wrapper class (LlamaAndroid) for use by :app.
 //
 //  Prerequisites:
-//    1. Run:  git submodule update --init --recursive
-//       This pulls third_party/llama.cpp (the official repo).
-//    2. Android NDK must be installed (SDK Manager → SDK Tools → NDK).
-//       The version declared in ndkVersion below is enforced; install it
-//       via Android Studio or:
-//         sdkmanager "ndk;29.0.13113456"
+//    • NDK installed in Android Studio (SDK Manager → NDK)
+//    • llama.cpp sources at src/main/cpp/llama.cpp (and headers)
+//    • CMakeLists.txt at src/main/cpp/CMakeLists.txt
 //
-//  After the submodule is present, Gradle builds the native .so files
-//  automatically as part of the normal assemble task.
+//  To add llama.cpp sources:
+//    git submodule add https://github.com/ggml-org/llama.cpp \
+//        llama-android/src/main/cpp/llama.cpp
+//  or copy the files manually.
 // ============================================================
 
 plugins {
@@ -25,31 +24,38 @@ android {
     namespace  = "com.techducat.llama"
     compileSdk = 36
 
-    ndkVersion = "29.0.13113456"
-
     defaultConfig {
         minSdk = 26
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        consumerProguardFiles("consumer-rules.pro")
 
         externalNativeBuild {
             cmake {
-                // Build for all common ABIs.  Remove armeabi-v7a / x86 to shrink the APK.
-                abiFilters += setOf("arm64-v8a", "x86_64")
-                // Pass the llama.cpp source root to CMake.
-                arguments(
-                    "-DLLAMA_SOURCE_DIR=${rootProject.projectDir}/third_party/llama.cpp"
+                cppFlags += listOf("-O3", "-DNDEBUG")
+                arguments += listOf(
+                    "-DLLAMA_BUILD_TESTS=OFF",
+                    "-DLLAMA_BUILD_EXAMPLES=OFF",
+                    "-DLLAMA_BUILD_SERVER=OFF"
                 )
-                cppFlags("-std=c++17")
             }
+        }
+
+        ndk {
+            // Only build for 64-bit ABIs; 32-bit devices lack the RAM for LLMs.
+            abiFilters += listOf("arm64-v8a", "x86_64")
         }
     }
 
     externalNativeBuild {
         cmake {
-            path   = file("src/main/cpp/CMakeLists.txt")
+            path = file("src/main/cpp/CMakeLists.txt")
             version = "3.22.1"
+        }
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = false
         }
     }
 
@@ -59,8 +65,6 @@ android {
     }
 
     kotlinOptions { jvmTarget = "17" }
-
-    buildFeatures { buildConfig = false }
 }
 
 dependencies {

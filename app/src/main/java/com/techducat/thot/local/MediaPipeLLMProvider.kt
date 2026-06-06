@@ -1,6 +1,7 @@
 package com.techducat.thot.local
 
 import android.content.Context
+import android.util.Log
 import com.google.mediapipe.tasks.genai.llminference.LlmInference
 
 /**
@@ -37,6 +38,7 @@ class MediaPipeLLMProvider(private val context: Context) {
             ensureLoaded(modelPath)
             llm!!.generateResponse(prompt)
         } catch (e: Exception) {
+            Log.e(TAG, "MediaPipe inference error", e)
             "⚠️ MediaPipe error: ${e.message}\n\n" +
             "Check that the model file path is correct and the file is not corrupted."
         }
@@ -44,19 +46,32 @@ class MediaPipeLLMProvider(private val context: Context) {
 
     /** Force the model to be reloaded on next call (e.g. after path change). */
     fun reset() {
-        llm?.close()
+        try {
+            llm?.close()
+        } catch (e: Exception) {
+            Log.w(TAG, "MediaPipe LlmInference close() error (ignored): ${e.message}")
+        }
         llm = null
         loadedModelPath = ""
     }
 
     private fun ensureLoaded(modelPath: String) {
         if (llm != null && loadedModelPath == modelPath) return
-        llm?.close()
+        // Close existing instance before loading a new one to free GPU/NPU memory
+        try {
+            llm?.close()
+        } catch (e: Exception) {
+            Log.w(TAG, "MediaPipe close() before reload (ignored): ${e.message}")
+        }
         val options = LlmInference.LlmInferenceOptions.builder()
             .setModelPath(modelPath)
             .setMaxTokens(1024)
             .build()
         llm = LlmInference.createFromOptions(context, options)
         loadedModelPath = modelPath
+    }
+
+    companion object {
+        private const val TAG = "MediaPipeLLMProvider"
     }
 }

@@ -3,6 +3,7 @@ package com.techducat.thot.accessibility
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.Intent
+import android.os.Build
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
@@ -29,7 +30,10 @@ class ThotAccessibilityService : AccessibilityService() {
             notificationTimeout = 100
         }
 
-        // Launch the overlay floating button
+        // Launch the overlay floating button as a foreground service.
+        // On API 26+ startService() for a foreground service causes an
+        // IllegalStateException ("not allowed to start service Intent").
+        // startForegroundService() is required.
         startOverlayService()
 
         instance = this
@@ -45,7 +49,11 @@ class ThotAccessibilityService : AccessibilityService() {
             val packageName = event.packageName?.toString() ?: return
 
             // Don't capture our own overlay or the system UI unnecessarily
-            if (packageName == "com.techducat.thot" || packageName == "com.techducat.thot.debug") return
+            if (packageName == "com.techducat.thot" ||
+                packageName == "com.techducat.thot.debug" ||
+                packageName == "com.techducat.thot.fdroid" ||
+                packageName == "com.techducat.thot.fdroid.debug"
+            ) return
 
             val root = rootInActiveWindow ?: return
             val text = extractText(root)
@@ -106,7 +114,11 @@ class ThotAccessibilityService : AccessibilityService() {
 
     private fun startOverlayService() {
         val intent = Intent(this, ThotOverlayService::class.java)
-        startService(intent)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(intent)
+        } else {
+            startService(intent)
+        }
     }
 
     private fun stopOverlayService() {

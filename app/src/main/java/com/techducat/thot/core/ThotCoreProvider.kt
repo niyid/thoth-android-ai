@@ -1,6 +1,7 @@
 package com.techducat.thot.core
 
 import android.content.Context
+import android.util.Log
 import com.techducat.thot.local.LocalLLMProvider
 import com.techducat.thot.local.MediaPipeLLMProvider
 import com.techducat.thot.local.LlamaCppProvider
@@ -19,6 +20,11 @@ import kotlinx.coroutines.withContext
  *
  * All callbacks are delivered on the Android main thread so callers can update
  * the UI directly without an extra `runOnUiThread` call.
+ *
+ * All provider calls are wrapped in try/catch so that an exception from a
+ * local provider (e.g. JNI crash in llama.cpp, MediaPipe model load failure)
+ * always delivers an error string to the callback rather than silently dropping
+ * it and leaving the UI in a permanent loading state.
  */
 class ThotCoreProvider(private val context: Context) : ThotContextProvider {
 
@@ -36,19 +42,31 @@ class ThotCoreProvider(private val context: Context) : ThotContextProvider {
             ProviderType.LOCAL -> scope.launch {
                 // LocalLLMProvider is synchronous; run on IO to keep main thread free.
                 val result = withContext(Dispatchers.IO) {
-                    localProvider.handle(task.buildFullPrompt())
+                    runCatching { localProvider.handle(task.buildFullPrompt()) }
+                        .getOrElse { e ->
+                            Log.e(TAG, "LOCAL provider error", e)
+                            "Error: local provider failed — ${e.message}"
+                        }
                 }
                 callback(result)
             }
             ProviderType.MEDIAPIPE -> scope.launch {
                 val result = withContext(Dispatchers.IO) {
-                    mediaPipeProvider.handle(task.buildFullPrompt(), prefs.localModelPath)
+                    runCatching { mediaPipeProvider.handle(task.buildFullPrompt(), prefs.localModelPath) }
+                        .getOrElse { e ->
+                            Log.e(TAG, "MEDIAPIPE provider error", e)
+                            "Error: MediaPipe inference failed — ${e.message}"
+                        }
                 }
                 callback(result)
             }
             ProviderType.LLAMACPP -> scope.launch {
                 val result = withContext(Dispatchers.IO) {
-                    llamaCppProvider.handle(task.buildFullPrompt(), prefs.localModelPath)
+                    runCatching { llamaCppProvider.handle(task.buildFullPrompt(), prefs.localModelPath) }
+                        .getOrElse { e ->
+                            Log.e(TAG, "LLAMACPP provider error", e)
+                            "Error: llama.cpp inference failed — ${e.message}"
+                        }
                 }
                 callback(result)
             }
@@ -78,5 +96,9 @@ class ThotCoreProvider(private val context: Context) : ThotContextProvider {
     suspend fun resetLocalProviders() = withContext(Dispatchers.IO) {
         mediaPipeProvider.reset()
         llamaCppProvider.reset()
+    }
+
+    companion object {
+        private const val TAG = "ThotCoreProvider"
     }
 }

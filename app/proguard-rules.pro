@@ -47,3 +47,31 @@
 # autovalue / javapoet shaded inside autovalue — annotation-processor internals
 # referenced via reflection; safe to ignore on Android
 -dontwarn autovalue.shaded.**
+
+# ── llama-android JNI ─────────────────────────────────────────────────────────
+# LlamaAndroid is the JNI bridge class; its native method names must be kept
+# verbatim so the linker can resolve them at runtime via JNI_OnLoad / FindClass.
+-keep class com.techducat.llama.LlamaAndroid { *; }
+-keepclasseswithmembernames class com.techducat.llama.** {
+    native <methods>;
+}
+
+# ── MediaPipe LLM Inference ───────────────────────────────────────────────────
+# The tasks-genai AAR uses reflection internally; keep its public surface.
+-keep class com.google.mediapipe.tasks.genai.** { *; }
+-dontwarn com.google.mediapipe.**
+
+# ── UI / Service / Receiver classes (manifest-declared) ──────────────────────
+-keep class com.techducat.thot.ui.** { *; }
+-keep class com.techducat.thot.chrono.** { *; }
+-keep class com.techducat.thot.settings.** { *; }
+-keep class com.techducat.thot.remote.** { *; }
+-keep class com.techducat.thot.local.** { *; }
+-keep class com.techducat.thot.ThotApplication { *; }
+
+# ── BuildConfig fields (referenced by flavor-conditional code) ────────────────
+-keep class com.techducat.thot.BuildConfig { *; }
+
+# ── Kotlin ────────────────────────────────────────────────────────────────────
+-keep class kotlin.Metadata { *; }
+-dontwarn kotlin.**

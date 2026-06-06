@@ -6,6 +6,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.util.Log
 import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.Toast
@@ -17,13 +18,12 @@ import kotlinx.coroutines.launch
 import com.techducat.thot.R
 import com.techducat.thot.BuildConfig
 import com.techducat.thot.accessibility.ThotAccessibilityService
+import com.techducat.thot.accessibility.ThotOverlayService
 import com.techducat.thot.core.ProviderType
 import com.techducat.thot.core.ThotCoreProvider
 import com.techducat.thot.core.ThotTask
 import com.techducat.thot.databinding.ActivityMainBinding
 import com.techducat.thot.settings.ThotPreferences
-import com.google.firebase.crashlytics.FirebaseCrashlytics
-import com.techducat.thot.ui.ProminentDisclosureDialog
 
 class MainActivity : AppCompatActivity() {
 
@@ -44,7 +44,7 @@ class MainActivity : AppCompatActivity() {
         // Persist read permission so the path survives reboots
         contentResolver.takePersistableUriPermission(
             uri,
-            android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+            Intent.FLAG_GRANT_READ_URI_PERMISSION
         )
         binding.etLocalModelPath.setText(uri.toString())
     }
@@ -227,10 +227,16 @@ class MainActivity : AppCompatActivity() {
         // FIX (crash 2 companion): only start the service when the overlay
         // permission is already granted; otherwise the service crashes trying
         // to call WindowManager.addView() with TYPE_APPLICATION_OVERLAY.
-        val overlayIntent = Intent(this, com.techducat.thot.accessibility.ThotOverlayService::class.java)
+        // FIX (API 26+): use startForegroundService() instead of startService()
+        // for services that call startForeground() — Android 8+ requires this.
+        val overlayIntent = Intent(this, ThotOverlayService::class.java)
         if (overlayEnabled) {
-            if (android.provider.Settings.canDrawOverlays(this)) {
-                startService(overlayIntent)
+            if (Settings.canDrawOverlays(this)) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    startForegroundService(overlayIntent)
+                } else {
+                    startService(overlayIntent)
+                }
             } else {
                 Toast.makeText(
                     this,
@@ -280,10 +286,10 @@ class MainActivity : AppCompatActivity() {
             binding.btnTest.isEnabled = true
             // Report provider errors as non-fatals so they appear in Crashlytics
             if (result.startsWith("Error:") && !BuildConfig.IS_FDROID_BUILD) {
-                FirebaseCrashlytics.getInstance().apply {
-                    setCustomKey("provider", prefs.provider.name)
-                    recordException(RuntimeException("Test LLM call failed: $result"))
-                }
+                ThotOverlayService.reportNonFatal(
+                    keys = mapOf("provider" to prefs.provider.name),
+                    exception = RuntimeException("Test LLM call failed: $result")
+                )
             }
         }
     }

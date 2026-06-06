@@ -84,9 +84,18 @@ class OpenAiClient(private val context: Context) {
                     }
                     try {
                         val json = JSONObject(rawBody)
-                        val content = json
-                            .getJSONArray("choices")
-                            .getJSONObject(0)
+                        val choices: JSONArray = json.getJSONArray("choices")
+                        if (choices.length() == 0) {
+                            deliver("Error: empty choices array in response", callback)
+                            return
+                        }
+                        val choice = choices.getJSONObject(0)
+                        val finishReason = choice.optString("finish_reason", "")
+                        if (finishReason == "content_filter") {
+                            deliver("Error: response blocked by content filter", callback)
+                            return
+                        }
+                        val content = choice
                             .getJSONObject("message")
                             .getString("content")
                         deliver(content.trim(), callback)

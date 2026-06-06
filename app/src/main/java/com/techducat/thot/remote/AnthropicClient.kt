@@ -13,7 +13,7 @@ import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 /**
- * Wraps the Anthropic Messages API (claude-sonnet-4-5 / claude-3-5-haiku).
+ * Wraps the Anthropic Messages API (claude-haiku-4-5-20251001).
  *
  * - Uses the Anthropic API key from [ThotPreferences].
  * - All callbacks are delivered on the **main thread**.
@@ -84,11 +84,20 @@ class AnthropicClient(private val context: Context) {
                     }
                     try {
                         val json = JSONObject(rawBody)
-                        val content = json
-                            .getJSONArray("content")
-                            .getJSONObject(0)
-                            .getString("text")
-                        deliver(content.trim(), callback)
+                        val contentArray: JSONArray = json.getJSONArray("content")
+                        // Find the first content block with type == "text".
+                        // The Anthropic API can return mixed content types (text, tool_use, etc.);
+                        // always searching by type avoids an IndexOutOfBoundsException or
+                        // ClassCastException if a non-text block appears at index 0.
+                        var text: String? = null
+                        for (i in 0 until contentArray.length()) {
+                            val block = contentArray.getJSONObject(i)
+                            if (block.optString("type") == "text") {
+                                text = block.getString("text")
+                                break
+                            }
+                        }
+                        deliver(text?.trim() ?: "Error: no text content in response", callback)
                     } catch (e: Exception) {
                         deliver("Error parsing response: ${e.message}", callback)
                     }

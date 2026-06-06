@@ -23,6 +23,29 @@
     <!-- Post notifications (required for foreground service notification on API 33+) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+
+    <!-- ── Package visibility (API 30+) ─────────────────────────────────────
+         Apps targeting API 30+ must declare which external intents they use.
+         Without this, startActivity() silently fails for implicit intents.
+    ──────────────────────────────────────────────────────────────────────── -->
+    <queries>
+        <!-- Email client (EmailAction.sendEmail, ChronoScript automation) -->
+        <intent>
+            <action android:name="android.intent.action.SENDTO" />
+            <data android:scheme="mailto" />
+        </intent>
+        <!-- SMS client (SmsAction.sendSms, ChronoScript automation) -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="sms" />
+        </intent>
+        <!-- Browser — model download links in MainActivity -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+    </queries>
+
     <application
         android:name=".ThotApplication"
         android:allowBackup="true"

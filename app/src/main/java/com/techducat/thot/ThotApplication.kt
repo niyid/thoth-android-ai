@@ -1,8 +1,6 @@
 package com.techducat.thot
 
 import android.app.Application
-import com.google.firebase.FirebaseApp
-import com.google.firebase.crashlytics.FirebaseCrashlytics
 import java.util.concurrent.Executors
 
 /**
@@ -14,6 +12,10 @@ import java.util.concurrent.Executors
  *
  * FirebaseApp.initializeApp() is thread-safe; Crashlytics configuration
  * methods are also safe to call off-main after initializeApp completes.
+ *
+ * Firebase dependencies are only on the classpath for the `playstore` flavor.
+ * For `fdroid` builds, IS_FDROID_BUILD=true and this block is skipped entirely,
+ * so we must not import Firebase classes at the file level — use reflection.
  */
 class ThotApplication : Application() {
 
@@ -24,11 +26,22 @@ class ThotApplication : Application() {
         // F-Droid builds have no Firebase dependency on the classpath at runtime.
         if (!BuildConfig.IS_FDROID_BUILD) {
             Executors.newSingleThreadExecutor().execute {
-                FirebaseApp.initializeApp(this)
-                FirebaseCrashlytics.getInstance().apply {
-                    setCrashlyticsCollectionEnabled(true)
-                    setCustomKey("version_name", BuildConfig.VERSION_NAME)
-                    setCustomKey("version_code", BuildConfig.VERSION_CODE)
+                try {
+                    val firebaseAppClass = Class.forName("com.google.firebase.FirebaseApp")
+                    firebaseAppClass.getMethod("initializeApp", android.content.Context::class.java)
+                        .invoke(null, this)
+
+                    val crashlyticsClass =
+                        Class.forName("com.google.firebase.crashlytics.FirebaseCrashlytics")
+                    val instance = crashlyticsClass.getMethod("getInstance").invoke(null)
+                    crashlyticsClass.getMethod("setCrashlyticsCollectionEnabled", Boolean::class.java)
+                        .invoke(instance, true)
+                    crashlyticsClass.getMethod("setCustomKey", String::class.java, String::class.java)
+                        .invoke(instance, "version_name", BuildConfig.VERSION_NAME)
+                    crashlyticsClass.getMethod("setCustomKey", String::class.java, Int::class.java)
+                        .invoke(instance, "version_code", BuildConfig.VERSION_CODE)
+                } catch (e: Exception) {
+                    android.util.Log.w("ThotApplication", "Firebase init failed: ${e.message}")
                 }
             }
         }

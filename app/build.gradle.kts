@@ -26,10 +26,28 @@ import java.io.File
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
-    // GMS / Firebase plugins — only applied when building the playstore flavor.
-    // The flavor-conditional guard lives in the android {} block below.
+    // GMS / Firebase plugins — only applied when google-services.json is present
+    // (i.e., playstore builds). F-Droid builds omit google-services.json so these
+    // plugins skip processing and produce no output. The plugins must still be
+    // declared here (not in root) because the google-services plugin processes
+    // resources during the variant-aware configuration phase.
     id("com.google.gms.google-services")
     id("com.google.firebase.crashlytics")
+}
+
+// Guard: skip google-services / crashlytics processing entirely if
+// google-services.json is absent (fdroid CI, contributors without Firebase access).
+// The plugin declarations above are needed so the plugin classes are on the
+// classpath; this suppresses their active processing when the config file is missing.
+val googleServicesJsonFile = file("google-services.json")
+if (!googleServicesJsonFile.exists()) {
+    // Disable Crashlytics mapping upload tasks — they will fail without the JSON.
+    tasks.configureEach {
+        if (name.contains("uploadCrashlyticsMappingFile", ignoreCase = true) ||
+            name.contains("injectCrashlyticsMapping", ignoreCase = true)) {
+            enabled = false
+        }
+    }
 }
 
 // ── Secrets ──────────────────────────────────────────────────────────────────
@@ -50,8 +68,8 @@ android {
         applicationId   = "com.techducat.thot"
         minSdk          = 26
         targetSdk       = 36
-        versionCode     = 8
-        versionName     = "0.0.8"
+        versionCode     = 9
+        versionName     = "0.0.9"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

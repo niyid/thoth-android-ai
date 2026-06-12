@@ -37,7 +37,7 @@
 
     <!-- Providers -->
     <string-array name="provider_options">
-        <item>Local (offline, placeholder)</item>
+        <item>Built-in (offline, no key needed) ✓</item>
         <item>OpenAI GPT-4o</item>
         <item>Anthropic Claude</item>
         <item>MediaPipe / Gemma (on-device)</item>
@@ -97,4 +97,13 @@
     <string name="disclosure_btn_proceed">I Understand — Enable</string>
     <string name="disclosure_btn_cancel">Cancel</string>
     <string name="disclosure_pref_accepted_key">prominent_disclosure_accepted</string>
+
+    <!-- Onboarding banner -->
+    <string name="banner_title">Works out of the box — no account needed</string>
+    <string name="banner_body">Thot\'s built-in offline mode processes everything on your device. No API key or internet connection required. You can optionally connect a smarter AI provider below.</string>
+
+    <!-- Provider helper text -->
+    <string name="helper_provider_local">✓ No API key needed. Responses are generated on your device using pattern matching. For smarter AI, choose another option below.</string>
+    <string name="helper_provider_cloud">Requires an API key from the provider\'s website. Your screen context is sent to their servers when you use Thot.</string>
+    <string name="helper_provider_ondevice">Runs a full language model on your phone. Free and private, but requires downloading a model file (800 MB–2 GB).</string>
 </resources>

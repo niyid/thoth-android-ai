@@ -69,8 +69,8 @@ android {
         applicationId   = "com.techducat.thot"
         minSdk          = 26
         targetSdk       = 36
-        versionCode     = 9
-        versionName     = "0.0.9"
+        versionCode     = 10
+        versionName     = "0.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

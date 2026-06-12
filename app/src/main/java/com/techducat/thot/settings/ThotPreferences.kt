@@ -33,7 +33,7 @@ class ThotPreferences(context: Context) {
     }
 
     var provider: ProviderType
-        get() = ProviderType.fromString(prefs.getString(KEY_PROVIDER, ProviderType.ANTHROPIC.name) ?: "")
+        get() = ProviderType.fromString(prefs.getString(KEY_PROVIDER, ProviderType.LOCAL.name) ?: "")
         set(value) = prefs.edit { putString(KEY_PROVIDER, value.name) }
 
     var overlayEnabled: Boolean

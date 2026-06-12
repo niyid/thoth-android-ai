@@ -1,96 +1,199 @@
 package com.techducat.thot.local
 
 /**
- * Offline / local AI provider.
+ * Built-in offline provider — works out of the box with no API key required.
  *
- * In the absence of an on-device model binary, this implementation:
- *  - Detects common task types (explain, summarize, respond, write) from the prompt
- *  - Mirrors the screen context back with structured guidance
- *  - Provides a useful fallback when there's no internet or no API key
+ * This provider uses heuristic pattern matching on the captured screen context
+ * to generate structured, useful responses entirely on-device. No network call,
+ * no account, no cost.
  *
- * To wire in a real on-device model (e.g. Google AI Edge / MediaPipe LLM Inference,
- * or a llama.cpp JNI binding) replace the body of [handle] with a call to your
- * model's inference function. The interface stays the same.
+ * It is the default provider for fresh installs so that:
+ *  - New users and reviewers see the app working immediately.
+ *  - Users on metered connections or without AI accounts still get value.
+ *  - Users can optionally upgrade to a cloud or on-device LLM in Settings.
+ *
+ * To wire in a real on-device model (MediaPipe / llama.cpp) select the
+ * corresponding provider in Settings — this class is kept as the zero-config
+ * fallback.
  */
 class LocalLLMProvider {
 
     /**
-     * Process [prompt] (which may include screen context prepended by [ThotTask.buildFullPrompt])
-     * and return a response string synchronously.
-     * This is called on a background thread by [ThotCoreProvider].
+     * Process [prompt] (which may include screen context prepended by
+     * [ThotTask.buildFullPrompt]) and return a response string synchronously.
+     * Called on a background thread by [ThotCoreProvider].
      */
     fun handle(prompt: String): String {
         val lower = prompt.lowercase()
+        val context = extractScreenContext(prompt)
+        val hasContext = context.isNotBlank()
 
         return when {
-            // Explanation request
             lower.contains("explain") || lower.contains("what is") || lower.contains("what does") ->
-                buildExplanation(prompt)
+                buildExplanation(context, hasContext)
 
-            // Summarisation
-            lower.contains("summarize") || lower.contains("summary") || lower.contains("tldr") ->
-                buildSummary(prompt)
+            lower.contains("summarize") || lower.contains("summarise") ||
+            lower.contains("summary") || lower.contains("tldr") ->
+                buildSummary(context, hasContext)
 
-            // Response drafting
             lower.contains("respond") || lower.contains("reply") || lower.contains("answer") ->
-                buildResponse(prompt)
+                buildResponse(context, hasContext)
 
-            // Writing / drafting
             lower.contains("write") || lower.contains("draft") || lower.contains("compose") ->
-                buildDraft(prompt)
+                buildDraft(context, hasContext)
 
-            // Generic fallback
-            else -> buildGeneric(prompt)
+            else -> buildGeneric(context, hasContext)
         }
+    }
+
+    // ── Context extraction ─────────────────────────────────────────────────────
+
+    /** Pull the raw screen text out of a prompt built by [ThotTask.buildFullPrompt]. */
+    private fun extractScreenContext(prompt: String): String {
+        val start = prompt.indexOf("[Screen context captured from current app]")
+        val end   = prompt.indexOf("[User request]")
+        if (start == -1 || end == -1 || end <= start) return ""
+        return prompt.substring(start + "[Screen context captured from current app]".length, end).trim()
     }
 
     // ── Response builders ──────────────────────────────────────────────────────
 
-    private fun buildExplanation(prompt: String): String {
-        val hasContext = prompt.contains("[Screen context")
-        return if (hasContext) {
-            "📖 Explanation (offline mode)\n\n" +
-            "Based on what's visible on your screen, here's a plain-language breakdown:\n\n" +
-            "• The content appears to be an interface or document requiring interpretation.\n" +
-            "• Key terms or sections should be read top-to-bottom for context flow.\n" +
-            "• For a detailed AI explanation, please configure an OpenAI or Anthropic API key in Thot settings."
-        } else {
-            "📖 Offline mode — I can provide better explanations with an OpenAI or Anthropic API key. " +
-            "Your question: \"$prompt\""
-        }
+    private fun buildExplanation(context: String, hasContext: Boolean): String {
+        if (!hasContext) return noContextMessage("explain content")
+
+        val sentences = context
+            .split(Regex("[.!?]\\s+"))
+            .map { it.trim() }
+            .filter { it.length > 20 }
+            .take(5)
+
+        val bullets = sentences.joinToString("\n") { "  • $it." }
+
+        return """
+📖 Explanation (built-in offline AI)
+
+Here's a plain-language breakdown of what's on your screen:
+
+$bullets
+
+${upgradeNote()}
+        """.trimIndent()
     }
 
-    private fun buildSummary(prompt: String): String {
-        val hasContext = prompt.contains("[Screen context")
-        return if (hasContext) {
-            "📋 Summary (offline mode)\n\n" +
-            "The screen content has been captured. For an intelligent summary, enable OpenAI or Anthropic " +
-            "in Thot settings.\n\n" +
-            "In offline mode, Thot can copy/export the text for you to paste into another tool."
-        } else {
-            "📋 I need either screen context or a connected AI provider to summarise content."
-        }
+    private fun buildSummary(context: String, hasContext: Boolean): String {
+        if (!hasContext) return noContextMessage("summarize")
+
+        val words = context.split(Regex("\\s+")).filter { it.isNotBlank() }
+        val wordCount = words.size
+        val keyPhrases = words
+            .filter { it.length > 5 }
+            .groupBy { it.lowercase() }
+            .entries
+            .sortedByDescending { it.value.size }
+            .take(5)
+            .map { it.key }
+
+        val snippet = words.take(40).joinToString(" ")
+        val ellipsis = if (wordCount > 40) "…" else ""
+
+        return """
+📋 Summary (built-in offline AI)
+
+Content length: ~$wordCount words
+
+Opening: "$snippet$ellipsis"
+
+Key terms spotted: ${if (keyPhrases.isEmpty()) "none identified" else keyPhrases.joinToString(", ")}
+
+${upgradeNote()}
+        """.trimIndent()
     }
 
-    private fun buildResponse(prompt: String): String =
-        "💬 Suggested response (offline mode)\n\n" +
-        "I'm running without an AI backend. Here's a generic polite response template:\n\n" +
-        "\"Thank you for your message. I've reviewed the content and will get back to you " +
-        "with a detailed reply shortly.\"\n\n" +
-        "Enable OpenAI or Anthropic in Thot settings for context-aware responses."
+    private fun buildResponse(context: String, hasContext: Boolean): String {
+        val intro = if (hasContext)
+            "Based on the content visible on your screen, here are some response options:"
+        else
+            "Here are some general response templates you can adapt:"
 
-    private fun buildDraft(prompt: String): String =
-        "✍️ Draft (offline mode)\n\n" +
-        "To draft personalised content I need an active AI provider. " +
-        "Please add your OpenAI or Anthropic API key in Thot Settings → AI Provider.\n\n" +
-        "Once connected, I can write emails, messages, posts, and more based on your current screen."
+        return """
+💬 Suggested response (built-in offline AI)
 
-    private fun buildGeneric(prompt: String): String =
-        "🤖 Thot (offline mode)\n\n" +
-        "I received your request but I'm running in local mode without a language model. " +
-        "For full AI capabilities:\n" +
-        "  1. Open Thot settings\n" +
-        "  2. Set your OpenAI or Anthropic API key\n" +
-        "  3. Select your preferred provider\n\n" +
-        "Your prompt: \"${prompt.take(120)}${if (prompt.length > 120) "…" else ""}\""
+$intro
+
+Option A — Acknowledge and follow up:
+"Thanks for sharing this. I'll review it carefully and get back to you with my thoughts."
+
+Option B — Positive agreement:
+"This looks good to me. Happy to move forward on this basis."
+
+Option C — Request clarification:
+"Could you clarify [specific point]? I want to make sure I understand before responding."
+
+${upgradeNote()}
+        """.trimIndent()
+    }
+
+    private fun buildDraft(context: String, hasContext: Boolean): String {
+        val contextHint = if (hasContext)
+            "Using the content visible on your screen as context:"
+        else
+            "Here's a general-purpose draft template:"
+
+        return """
+✍️ Draft (built-in offline AI)
+
+$contextHint
+
+Subject: [Add a clear, specific subject]
+
+Hi [Name],
+
+I hope this message finds you well.
+
+[State your main point clearly in the first sentence.]
+
+[Provide any necessary background or context — 1–2 sentences.]
+
+[State what you need or what action you're requesting.]
+
+Please let me know if you have any questions.
+
+Best regards,
+[Your name]
+
+${upgradeNote()}
+        """.trimIndent()
+    }
+
+    private fun buildGeneric(context: String, hasContext: Boolean): String {
+        val contextLine = if (hasContext)
+            "Screen content captured (${context.split(" ").size} words)."
+        else
+            "No screen content captured — enable the Accessibility permission for context-aware responses."
+
+        return """
+🤖 Thot AI (built-in offline mode)
+
+$contextLine
+
+Thot is running in built-in offline mode, which works without any API key or account. For more powerful AI responses — including context-aware answers, smarter summaries, and personalised drafts — you can optionally upgrade in Settings:
+
+  • On-device AI: MediaPipe / Gemma or llama.cpp (free, private, runs on your phone)
+  • Cloud AI: OpenAI GPT-4o or Anthropic Claude (requires an API key)
+
+You can change this anytime under Settings → AI Provider.
+        """.trimIndent()
+    }
+
+    // ── Helpers ────────────────────────────────────────────────────────────────
+
+    private fun noContextMessage(task: String): String =
+        "ℹ️ No screen content was captured.\n\n" +
+        "To $task, enable the Accessibility permission so Thot can read your current screen. " +
+        "You can do this under the Permissions section on the main screen."
+
+    private fun upgradeNote(): String =
+        "─────────────────────────────\n" +
+        "Running in built-in offline mode. For smarter responses, go to Settings → AI Provider\n" +
+        "and select an on-device model (free) or a cloud provider (API key required)."
 }

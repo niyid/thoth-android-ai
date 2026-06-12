@@ -89,14 +89,14 @@ class MainActivity : AppCompatActivity() {
         binding.switchOverlay.isChecked = prefs.overlayEnabled
         binding.spinnerProvider.setSelection(
             when (prefs.provider) {
-                ProviderType.LOCAL -> 0
-                ProviderType.OPENAI -> 1
+                ProviderType.LOCAL     -> 0
+                ProviderType.OPENAI    -> 1
                 ProviderType.ANTHROPIC -> 2
                 ProviderType.MEDIAPIPE -> 3
-                ProviderType.LLAMACPP -> 4
+                ProviderType.LLAMACPP  -> 4
             }
         )
-        updateApiKeyVisibility(binding.spinnerProvider.selectedItemPosition)
+        updateProviderUI(binding.spinnerProvider.selectedItemPosition)
     }
 
     private fun setupListeners() {
@@ -127,25 +127,36 @@ class MainActivity : AppCompatActivity() {
                     position: Int,
                     id: Long
                 ) {
-                    updateApiKeyVisibility(position)
+                    updateProviderUI(position)
                 }
                 override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
             }
     }
 
-    private fun updateApiKeyVisibility(position: Int) {
-        binding.tilApiKey.visibility = if (position == 1) View.VISIBLE else View.GONE
+    private fun updateProviderUI(position: Int) {
+        // ── Field visibility ──────────────────────────────────────────────────
+        binding.tilApiKey.visibility          = if (position == 1) View.VISIBLE else View.GONE
         binding.tilAnthropicApiKey.visibility = if (position == 2) View.VISIBLE else View.GONE
         val showLocalPath = position == 3 || position == 4
-        binding.tilLocalModelPath.visibility = if (showLocalPath) View.VISIBLE else View.GONE
-        binding.btnBrowseModel.visibility = if (showLocalPath) View.VISIBLE else View.GONE
-        // Show download shortcuts only for llama.cpp (position 4), where a manual
-        // model file is required. MediaPipe uses .task files which aren't on HF.
+        binding.tilLocalModelPath.visibility  = if (showLocalPath) View.VISIBLE else View.GONE
+        binding.btnBrowseModel.visibility     = if (showLocalPath) View.VISIBLE else View.GONE
         val showDownloads = position == 4
-        binding.tvDownloadLabel.visibility = if (showDownloads) View.VISIBLE else View.GONE
+        binding.tvDownloadLabel.visibility    = if (showDownloads) View.VISIBLE else View.GONE
         binding.btnDownloadLlama1b.visibility = if (showDownloads) View.VISIBLE else View.GONE
         binding.btnDownloadLlama3b.visibility = if (showDownloads) View.VISIBLE else View.GONE
-        binding.btnDownloadPhi3.visibility = if (showDownloads) View.VISIBLE else View.GONE
+        binding.btnDownloadPhi3.visibility    = if (showDownloads) View.VISIBLE else View.GONE
+
+        // ── Provider helper text ──────────────────────────────────────────────
+        binding.tvProviderHelper.text = getString(
+            when (position) {
+                0    -> R.string.helper_provider_local
+                1, 2 -> R.string.helper_provider_cloud
+                else -> R.string.helper_provider_ondevice
+            }
+        )
+
+        // ── Onboarding banner: dim it once user picks a non-local provider ──
+        binding.cardOnboarding.alpha = if (position == 0) 1f else 0.5f
     }
 
     // ── Permissions ──────────────────────────────────────────────────────────

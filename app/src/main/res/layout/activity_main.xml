@@ -73,7 +73,7 @@
                         android:textSize="11sp"
                         android:clickable="false"
                         android:focusable="false"
-                        style="@style/Widget.MaterialComponents.Chip.Entry" />
+                        style="@style/Widget.Material3.Chip.Assist" />
 
                 </LinearLayout>
 
@@ -163,7 +163,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="@string/btn_open_accessibility"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+                    style="@style/Widget.Material3.Button.OutlinedButton" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -237,7 +237,7 @@
                     android:layout_height="wrap_content"
                     android:hint="@string/hint_api_key"
                     android:visibility="gone"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox.Dense"
                     app:endIconMode="password_toggle"
                     android:layout_marginBottom="8dp">
 
@@ -257,7 +257,7 @@
                     android:layout_height="wrap_content"
                     android:hint="@string/hint_anthropic_api_key"
                     android:visibility="gone"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox.Dense"
                     app:endIconMode="password_toggle">
 
                     <com.google.android.material.textfield.TextInputEditText
@@ -276,7 +276,7 @@
                     android:layout_height="wrap_content"
                     android:hint="@string/hint_local_model_path"
                     android:visibility="gone"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox.Dense"
                     app:helperText="@string/helper_local_model_path"
                     android:layout_marginBottom="4dp">
 
@@ -296,7 +296,7 @@
                     android:layout_height="wrap_content"
                     android:text="Browse for model file…"
                     android:visibility="gone"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
                     android:layout_marginBottom="4dp" />
 
                 <!-- Download shortcut buttons — visible alongside tilLocalModelPath -->
@@ -316,7 +316,7 @@
                     android:layout_height="wrap_content"
                     android:text="@string/label_dl_llama_1b"
                     android:visibility="gone"
-                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    style="@style/Widget.Material3.Button.TextButton"
                     android:layout_marginBottom="0dp" />
 
                 <com.google.android.material.button.MaterialButton
@@ -325,7 +325,7 @@
                     android:layout_height="wrap_content"
                     android:text="@string/label_dl_llama_3b"
                     android:visibility="gone"
-                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    style="@style/Widget.Material3.Button.TextButton"
                     android:layout_marginBottom="0dp" />
 
                 <com.google.android.material.button.MaterialButton
@@ -334,7 +334,7 @@
                     android:layout_height="wrap_content"
                     android:text="@string/label_dl_phi3"
                     android:visibility="gone"
-                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    style="@style/Widget.Material3.Button.TextButton"
                     android:layout_marginBottom="8dp" />
 
             </LinearLayout>
@@ -353,7 +353,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/btn_test"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            style="@style/Widget.Material3.Button.OutlinedButton"
             android:layout_marginBottom="12dp" />
 
         <!-- Test result -->

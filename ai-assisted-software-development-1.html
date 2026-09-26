@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>What AI-Assisted Refactoring Actually Looks Like — The XMRWallet Fork</title>
+
+<meta name="description" content="Reading the diff between XMRWallet and its niyid fork line by line, against the backdrop of Bisq's May 2026 trade-protocol exploit and its unexamined implications for Haveno.">
+<meta name="author" content="Oyeniyi Dada">
+<meta name="keywords" content="AI-assisted development, Monero, XMRWallet, JNI, Bisq, Haveno, security audit, open source">
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="What AI-Assisted Refactoring Actually Looks Like — The XMRWallet Fork">
+<meta property="og:description" content="A line-by-line security walkthrough of the niyid XMRWallet fork, and what a Bitcoin exchange's May 2026 exploit means for Monero's own trading rails.">
+<meta property="og:url" content="https://oyeniyidada.substack.com/p/ai-assisted-software-development">
+<meta property="article:author" content="https://substack.com/@oyeniyidada">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="What AI-Assisted Refactoring Actually Looks Like">
+
+<link rel="canonical" href="https://oyeniyidada.substack.com/p/ai-assisted-software-development">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=DM+Sans:wght@300;400;500&family=IBM+Plex+Mono:wght@400;600&display=swap');
+
+  :root {
+    --bg:           #06080d;
+    --surface:      #0c1018;
+    --panel:        #101520;
+    --border:       #1c2433;
+    --border-hi:    #2a3a52;
+    --emerald:      #10b981;
+    --emerald-dim:  rgba(16,185,129,0.15);
+    --amber:        #f59e0b;
+    --amber-dim:    rgba(245,158,11,0.12);
+    --red:          #ef4444;
+    --red-dim:      rgba(239,68,68,0.12);
+    --blue:         #60a5fa;
+    --blue-dim:     rgba(96,165,250,0.12);
+    --violet:       #a78bfa;
+    --text:         #e2e8f0;
+    --muted:        #64748b;
+    --muted-hi:     #94a3b8;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    line-height: 1.75;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.5;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(16,185,129,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(16,185,129,0.025) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 28px 96px;
+  }
+
+  .header-banner {
+    margin: 40px 0 0;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .header-banner img {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  @media (max-width: 600px) {
+    .header-banner { margin-top: 24px; border-radius: 10px; }
+  }
+
+  .hero {
+    padding: 64px 0 64px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 64px;
+    position: relative;
+  }
+
+  .hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--emerald);
+    margin-bottom: 28px;
+  }
+
+  .hero-eyebrow::before {
+    content: '';
+    display: block;
+    width: 32px;
+    height: 1px;
+    background: var(--emerald);
+  }
+
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(32px, 5.4vw, 58px);
+    font-weight: 900;
+    line-height: 1.08;
+    letter-spacing: -0.02em;
+    margin-bottom: 16px;
+  }
+
+  h1 .accent { color: var(--emerald); }
+  h1 .italic { font-style: italic; }
+
+  .hero-sub {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    color: var(--amber);
+    text-transform: uppercase;
+    margin-bottom: 28px;
+  }
+
+  .hero-meta {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+  }
+
+  .hero-meta span { display: flex; align-items: center; gap: 6px; }
+  .hero-meta .sep { color: var(--border-hi); }
+
+  .hero-lead {
+    font-size: 18px;
+    font-weight: 300;
+    color: var(--muted-hi);
+    line-height: 1.7;
+    max-width: 720px;
+    border-left: 3px solid var(--emerald);
+    padding-left: 20px;
+    font-style: italic;
+  }
+
+  section { margin-bottom: 72px; }
+
+  .section-kicker {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--emerald);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .section-kicker::after {
+    content: '';
+    display: block;
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(22px, 3.2vw, 34px);
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.015em;
+    margin-bottom: 24px;
+  }
+
+  h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 19px;
+    font-weight: 700;
+    margin: 28px 0 12px;
+    color: var(--text);
+    font-style: italic;
+  }
+
+  h4 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    color: var(--blue);
+    margin: 24px 0 10px;
+  }
+
+  p { margin-bottom: 18px; color: var(--muted-hi); }
+  p:last-child { margin-bottom: 0; }
+  strong { color: var(--text); font-weight: 500; }
+  em { color: var(--muted-hi); }
+
+  ul.plain-list { margin: 0 0 18px 0; padding-left: 0; list-style: none; }
+  ul.plain-list li {
+    position: relative;
+    padding-left: 22px;
+    margin-bottom: 12px;
+    color: var(--muted-hi);
+  }
+  ul.plain-list li::before {
+    content: '▸';
+    position: absolute;
+    left: 0;
+    color: var(--emerald);
+  }
+
+  .pull-quote {
+    background: var(--emerald-dim);
+    border: 1px solid rgba(16,185,129,0.25);
+    border-left: 4px solid var(--emerald);
+    border-radius: 0 8px 8px 0;
+    padding: 24px 28px;
+    margin: 32px 0;
+  }
+  .pull-quote p {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-size: 18px;
+    line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 10px;
+  }
+  .pull-quote cite {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--emerald);
+    text-transform: uppercase;
+  }
+
+  .pillars-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 28px 0;
+  }
+  @media (max-width: 600px) { .pillars-grid { grid-template-columns: 1fr; } }
+
+  .pillar {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 22px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .pillar-name {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .pillar h3 { font-family: 'DM Sans', sans-serif; font-style: normal; font-size: 15px; font-weight: 500; margin: 0 0 8px; color: var(--text); }
+  .pillar p { font-size: 13px; line-height: 1.6; color: var(--muted); margin: 0; }
+  .pillar-emerald { border-left: 3px solid var(--emerald); }
+  .pillar-amber   { border-left: 3px solid var(--amber); }
+  .pillar-blue    { border-left: 3px solid var(--blue); }
+  .pillar-violet  { border-left: 3px solid var(--violet); }
+
+  .code-block {
+    background: #070a0f;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 28px 0;
+    font-size: 13px;
+  }
+  .code-header {
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .code-header span { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--muted); letter-spacing: 0.06em; }
+  .code-header .lang { color: var(--emerald); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; }
+  .code-body {
+    padding: 20px 20px;
+    font-family: 'IBM Plex Mono', monospace;
+    line-height: 1.7;
+    overflow-x: auto;
+    white-space: pre;
+    font-size: 12px;
+    color: #cbd5e1;
+  }
+  .kw { color: #c792ea; }
+  .fn { color: #82aaff; }
+  .str { color: #c3e88d; }
+  .num { color: #f78c6c; }
+  .cm { color: #546e7a; font-style: italic; }
+  .ty { color: #ffcb6b; }
+  .prop { color: var(--emerald); }
+
+  .compare-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 28px 0;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    font-size: 13px;
+  }
+  .compare-header, .compare-row {
+    display: grid;
+  }
+  .compare-header {
+    background: var(--panel);
+    border-bottom: 2px solid var(--border-hi);
+  }
+  .compare-header-cell {
+    padding: 12px 14px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-left: 1px solid var(--border);
+  }
+  .compare-header-cell:first-child { border-left: none; }
+  .compare-row { border-bottom: 1px solid var(--border); }
+  .compare-row:last-child { border-bottom: none; }
+  .compare-row:hover { background: rgba(255,255,255,0.018); }
+  .compare-cell {
+    padding: 12px 14px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--muted-hi);
+    border-left: 1px solid var(--border);
+  }
+  .compare-cell:first-child { border-left: none; }
+  .compare-cell.dim-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    color: var(--muted);
+  }
+  .compare-cell.bad  { color: #f87171; }
+  .compare-cell.good { color: #34d399; }
+  .compare-cell.mid  { color: var(--amber); }
+  @media (max-width: 640px) {
+    .compare-header { display: none; }
+    .compare-row { grid-template-columns: 1fr !important; border-top: 2px solid var(--border-hi); }
+    .compare-cell { border-left: none !important; border-bottom: 1px dashed var(--border); }
+    .compare-cell:last-child { border-bottom: none; }
+  }
+
+  .callout {
+    border-radius: 8px;
+    padding: 18px 20px;
+    margin: 24px 0;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+  }
+  .callout-warn { background: var(--amber-dim); border: 1px solid rgba(245,158,11,0.25); }
+  .callout-info { background: var(--blue-dim); border: 1px solid rgba(96,165,250,0.25); }
+  .callout-good { background: var(--emerald-dim); border: 1px solid rgba(16,185,129,0.25); }
+  .callout-bad  { background: var(--red-dim); border: 1px solid rgba(239,68,68,0.25); }
+  .callout-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+  .callout-body p { font-size: 13.5px; margin: 0; line-height: 1.6; }
+  .callout-body strong { display: block; margin-bottom: 4px; font-size: 13px; }
+
+  .verdict-box {
+    background: var(--surface);
+    border: 1px solid var(--border-hi);
+    border-radius: 10px;
+    padding: 26px 28px;
+    margin: 28px 0;
+    position: relative;
+  }
+  .verdict-box::before {
+    content: '◆ VERDICT';
+    display: block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    color: var(--emerald);
+    margin-bottom: 14px;
+  }
+  .verdict-box p { font-size: 14px; }
+
+  .article-footer {
+    border-top: 1px solid var(--border);
+    padding-top: 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+  .footer-left p {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+    margin: 0 0 6px;
+  }
+  .footer-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--emerald-dim);
+    border: 1px solid rgba(16,185,129,0.3);
+    border-radius: 6px;
+    padding: 10px 18px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--emerald);
+    text-decoration: none;
+    letter-spacing: 0.08em;
+  }
+  .footer-refs {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    color: var(--muted);
+    line-height: 1.9;
+    margin-top: 18px;
+    word-break: break-word;
+  }
+
+  @keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .hero { animation: fadeSlideUp 0.7s ease both; }
+  section { animation: fadeSlideUp 0.6s ease both; }
+
+  @media (max-width: 600px) {
+    .container { padding: 0 16px 64px; }
+    .hero { padding: 48px 0 40px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header-banner">
+    <img src="ai-assisted-software-dev-header.png" alt="AI-Assisted Software Development" loading="eager">
+  </div>
+
+  <header class="hero">
+    <div class="hero-eyebrow">Field Notes · Code Review · Open Source</div>
+    <h1>What <span class="accent italic">AI-Assisted</span><br>Refactoring Looks Like</h1>
+    <div class="hero-sub">A Security Walkthrough of the XMRWallet Fork</div>
+
+    <div class="hero-meta">
+      <span>📅 May 2026</span>
+      <span class="sep">·</span>
+      <span>✍ Oyeniyi Dada</span>
+      <span class="sep">·</span>
+      <span>🔗 github.com/niyid/xmrwallet</span>
+      <span class="sep">·</span>
+      <span>⏱ 15 min read</span>
+    </div>
+
+    <p class="hero-lead">
+      A Bitcoin exchange's May 2026 exploit is the unlikely starting point for this piece — not
+      because XMRWallet had anything to do with it, but because it's a clean reminder of where
+      wallet software actually breaks. From there, a close read of every changed line between
+      XMRWallet's upstream codebase and its niyid fork, and an argument that the same class of
+      bug that hit Bisq may still be sitting, unaudited, inside Haveno.
+    </p>
+  </header>
+
+  <!-- A -->
+  <section>
+    <div class="section-kicker">§ A — Context</div>
+    <h2>A Bitcoin Exchange's Bug, and Why Monero Should Care</h2>
+
+    <p>
+      On May 1, 2026, Bisq — the peer-to-peer Bitcoin trading platform built around
+      censorship-resistance and self-custody — disclosed that an attacker had found a way to
+      drain a slice of the offers sitting on its order book. The window was narrow, roughly
+      twelve hours, and the damage was contained to offers the attacker actually managed to
+      take: about <strong>11 BTC</strong> in confirmed losses. Because Bisq holds no funds
+      centrally, wallets that weren't mid-trade were never at risk.
+    </p>
+    <p>
+      The team's stopgap fix was almost comically blunt: they pointed the minimum required
+      trading version at <code>2.0.0</code>, a release number that doesn't exist, which had the
+      effect of locking out every v1 client and stopping the bleeding. Bisq 2 — a separate
+      codebase running the newer Bisq Easy protocol — was never in scope.
+    </p>
+
+    <div class="callout callout-info">
+      <div class="callout-icon">📋</div>
+      <div class="callout-body">
+        <strong>What Bisq said happened</strong>
+        <p>A missing validation check in the trade protocol let a modified client through.
+        Anyone with a trade open on or after the morning of May 1 was told to select it and
+        press Ctrl+O to start mediation.</p>
+      </div>
+    </div>
+
+    <p>
+      The aftermath followed a predictable shape: containment first, then a shift toward
+      hotfixes and a reimbursement conversation. Existing trades kept working, mediation and
+      arbitration stayed online. But because Bisq runs as a DAO, any payout plan has to clear
+      community governance first — there's no team with a checkbook who can simply make
+      affected users whole. Treasury size and consensus decide the timeline, not urgency.
+    </p>
+
+    <h3>The Same Story, Six Years Earlier</h3>
+    <p>
+      Anyone who's followed Bisq for a while will recognize the shape of this immediately. In
+      April 2020, the software failed to check that a trade's payout address actually matched
+      Bisq's own donation address before it signed and broadcast a time-locked payout. A
+      dishonest seller just had to wait out the clock — buyer funds, security deposit, and all,
+      redirected straight to the attacker. Seven victims, roughly 3 BTC and 4,000 XMR, about a
+      quarter million dollars at the time, all on the XMR/BTC pair.
+    </p>
+
+    <div class="pull-quote">
+      <p>In plain words, this exploit was the result of a flaw in the way Bisq trades are
+      carried out, not in the way funds are stored.</p>
+      <cite>— Bisq Network, April 2020 Security Statement</cite>
+    </div>
+
+    <p>
+      Neither incident, six years apart, involved broken cryptography. Both came down to
+      <strong>a validation check that should have existed and didn't</strong>. That's the thread
+      this piece pulls on — because it turns out to be exactly the right lens for reading a
+      diff between two versions of a Monero wallet, too.
+    </p>
+  </section>
+
+  <!-- B -->
+  <section>
+    <div class="section-kicker">§ B — Background</div>
+    <h2>Two Languages, One Wallet</h2>
+    <p>
+      XMRWallet — most people know it as Monerujo — is the Android wallet most Monero users
+      reach for first: non-custodial, mobile-native, talking to the network directly through
+      remote nodes. Under the hood it's really two applications stitched together:
+    </p>
+    <ul class="plain-list">
+      <li><strong>A Java/Kotlin layer</strong> that owns everything the user actually sees — UI, wallet lifecycle, node selection, transaction history, preferences.</li>
+      <li><strong>A native C++ layer</strong> that wraps Monero's own reference wallet library (<code>wallet2_api.h</code>) through JNI, handling the cryptography, transaction construction, and key material.</li>
+    </ul>
+    <p>
+      That split isn't a design choice so much as a fact of life — Monero's reference
+      implementation is C++, full stop. But the seam where Java meets C++ is one of the more
+      dangerous places in any Android codebase. Two memory models, two exception systems, and a
+      thread boundary all meet at once, and the failure modes range from an ordinary crash to
+      something much quieter: data that's silently wrong.
+    </p>
+  </section>
+
+  <!-- C -->
+  <section>
+    <div class="section-kicker">§ C — Framing</div>
+    <h2>Where AI Actually Earns Its Keep in Codebases Like This</h2>
+    <p>
+      "AI-assisted development" covers a lot of ground, but in a project like XMRWallet it
+      tends to show up in a handful of concrete, recognizable ways:
+    </p>
+    <div class="pillars-grid">
+      <div class="pillar pillar-emerald">
+        <div class="pillar-name">Scale</div>
+        <h3>Repetitive hardening</h3>
+        <p>Applying one safety pattern consistently across dozens of call sites in a large C++ file — exactly the kind of exhaustive work human reviewers tend to tire of halfway through.</p>
+      </div>
+      <div class="pillar pillar-amber">
+        <div class="pillar-name">Idiom</div>
+        <h3>RAII generation</h3>
+        <p>Producing resource-management wrappers that lean on the type system itself to enforce cleanup, rather than trusting every call site to remember.</p>
+      </div>
+      <div class="pillar pillar-blue">
+        <div class="pillar-name">Concurrency</div>
+        <h3>Thread-safety review</h3>
+        <p>Spotting shared mutable state and proposing mutex-guarded access around it.</p>
+      </div>
+      <div class="pillar pillar-violet">
+        <div class="pillar-name">Onboarding</div>
+        <h3>Build tooling &amp; docs</h3>
+        <p>Lowering the friction to reproduce a build — which, in a supply-chain sense, is itself a security property.</p>
+      </div>
+    </div>
+    <p>
+      The niyid fork of XMRWallet reads like a specimen of exactly this pattern: uniform
+      application of a hardening idiom across a big file, consistent defensive checks, and a
+      documentation set with a completeness that's hard to sustain through manual effort alone.
+      What follows is a section-by-section read of what actually changed.
+    </p>
+  </section>
+
+  <!-- D -->
+  <section>
+    <div class="section-kicker">§ D — The Diff</div>
+    <h2>Inside monerujo.cpp: The File That Matters Most</h2>
+    <p>
+      <code>monerujo.cpp</code> is the JNI bridge itself — the single file handling private
+      keys, mnemonics, passwords, and raw transaction data as they cross from Java into the
+      Monero library. It grew from 1,755 lines upstream to 2,814 in the fork, a 60% expansion,
+      and almost everything worth discussing in this piece lives inside that delta.
+    </p>
+
+    <div class="compare-cards">
+      <div class="compare-header" style="grid-template-columns: 1.4fr 1fr 1fr;">
+        <div class="compare-header-cell">Metric</div>
+        <div class="compare-header-cell">m2049r (upstream)</div>
+        <div class="compare-header-cell">niyid (fork)</div>
+      </div>
+      <div class="compare-row" style="grid-template-columns: 1.4fr 1fr 1fr;">
+        <div class="compare-cell dim-label">Java source files</div>
+        <div class="compare-cell">169</div>
+        <div class="compare-cell">169 (identical set)</div>
+      </div>
+      <div class="compare-row" style="grid-template-columns: 1.4fr 1fr 1fr;">
+        <div class="compare-cell dim-label">monerujo.cpp lines</div>
+        <div class="compare-cell">1,755</div>
+        <div class="compare-cell good">2,814 (+1,059)</div>
+      </div>
+      <div class="compare-row" style="grid-template-columns: 1.4fr 1fr 1fr;">
+        <div class="compare-cell dim-label">Null / exception checks</div>
+        <div class="compare-cell">~98</div>
+        <div class="compare-cell good">~331 (+238%)</div>
+      </div>
+      <div class="compare-row" style="grid-template-columns: 1.4fr 1fr 1fr;">
+        <div class="compare-cell dim-label">Build scripts</div>
+        <div class="compare-cell">Minimal Makefile</div>
+        <div class="compare-cell">Docker + shell scripts, all ABIs</div>
+      </div>
+      <div class="compare-row" style="grid-template-columns: 1.4fr 1fr 1fr;">
+        <div class="compare-cell dim-label">TransactionHistory.refresh()</div>
+        <div class="compare-cell">private</div>
+        <div class="compare-cell mid">public</div>
+      </div>
+      <div class="compare-row" style="grid-template-columns: 1.4fr 1fr 1fr;">
+        <div class="compare-cell dim-label">JNI string handling</div>
+        <div class="compare-cell">Raw char* + manual release</div>
+        <div class="compare-cell good">RAII JNIStringGuard</div>
+      </div>
+      <div class="compare-row" style="grid-template-columns: 1.4fr 1fr 1fr;">
+        <div class="compare-cell dim-label">Mutex usage</div>
+        <div class="compare-cell">Listener mutex only</div>
+        <div class="compare-cell good">Listener + wallet + tracker mutexes</div>
+      </div>
+    </div>
+
+    <h3>1. String Handling — from a Footgun to an RAII Guard</h3>
+    <p>
+      The upstream pattern for pulling a Java string across the JNI boundary is the textbook
+      one, and it's fragile in a textbook way:
+    </p>
+    <div class="code-block">
+      <div class="code-header"><span>monerujo.cpp — upstream pattern</span><span class="lang">C++</span></div>
+      <div class="code-body"><span class="kw">const</span> <span class="kw">char</span> *_password = env-&gt;GetStringUTFChars(password, nullptr);
+<span class="cm">// ... use _password ...</span>
+env-&gt;ReleaseStringUTFChars(password, _password);</div>
+    </div>
+    <p>
+      Throw an exception, or hit an early return, anywhere between those two lines, and the
+      string is never released — a leak. Worse, if <code>GetStringUTFChars</code> itself fails
+      because an exception is already pending, the code keeps going with a null pointer nobody
+      checked. In a wallet handling key material, a crash at exactly the wrong moment risks
+      leaving things in a half-initialised state.
+    </p>
+    <p>The fork replaces every instance of this with a small RAII class:</p>
+    <div class="code-block">
+      <div class="code-header"><span>monerujo.cpp — fork's JNIStringGuard</span><span class="lang">C++</span></div>
+      <div class="code-body"><span class="kw">class</span> <span class="ty">JNIStringGuard</span> {
+    JNIEnv* env; jstring jstr; <span class="kw">const</span> <span class="kw">char</span>* cstr; <span class="kw">bool</span> released;
+<span class="kw">public</span>:
+    JNIStringGuard(JNIEnv* e, jstring s) : env(e), jstr(s), cstr(nullptr), released(<span class="kw">false</span>) {
+        <span class="kw">if</span> (s != nullptr &amp;&amp; env != nullptr) {
+            <span class="kw">try</span> { cstr = env-&gt;GetStringUTFChars(s, nullptr); }
+            <span class="kw">catch</span> (...) { LOGE(<span class="str">"EXCEPTION in GetStringUTFChars"</span>); cstr = nullptr; }
+        }
+    }
+    ~JNIStringGuard() { <span class="kw">if</span> (cstr &amp;&amp; env) env-&gt;ReleaseStringUTFChars(jstr, cstr); }
+    <span class="kw">const</span> <span class="kw">char</span>* get() <span class="kw">const</span> { <span class="kw">return</span> cstr; }
+    <span class="kw">bool</span> isValid() <span class="kw">const</span> { <span class="kw">return</span> cstr != nullptr; }
+    JNIStringGuard(<span class="kw">const</span> JNIStringGuard&amp;) = <span class="kw">delete</span>;
+    JNIStringGuard&amp; operator=(<span class="kw">const</span> JNIStringGuard&amp;) = <span class="kw">delete</span>;
+};</div>
+    </div>
+    <p>
+      The destructor releases the string no matter how the enclosing scope exits.
+      <code>isValid()</code> makes the failure path explicit instead of implicit. Deleting the
+      copy constructor rules out a double-release. And the constructor itself now catches the
+      exception that the old pattern would have let escape unhandled. This is a genuine,
+      substantive fix — not a stylistic one.
+    </p>
+
+    <h3>2. Null Guards, Everywhere</h3>
+    <p>Every JNI entry point in the fork now opens with an explicit check:</p>
+    <div class="code-block">
+      <div class="code-header"><span>monerujo.cpp — entry-point guard</span><span class="lang">C++</span></div>
+      <div class="code-body"><span class="kw">if</span> (path == nullptr || password == nullptr || language == nullptr) {
+    LOGE(<span class="str">"createWalletJ: null parameter(s) received"</span>);
+    <span class="kw">return</span> <span class="num">0</span>;
+}</div>
+    </div>
+    <p>
+      Counting these across the file — 331 in the fork against 98 upstream, a 238% increase —
+      it's fair to say the entry surface has been hardened systematically rather than
+      opportunistically. A null JNI string slipping past a check like this can mean a
+      segfault, a corrupted wallet, or in the worst case a write to memory an attacker had some
+      say over. Closing that gap consistently, rather than case-by-case, is exactly the sort of
+      work AI tooling is well suited to.
+    </p>
+
+    <h3>3. Threading: Three Mutexes Instead of One</h3>
+    <p>
+      Both versions protect the <code>WalletListener</code> callback with a
+      <code>_listenerMutex</code>. The fork adds two more: a <code>g_walletMutex</code> guarding
+      wallet creation and access, and a <code>g_walletTrackerMutex</code> protecting a global
+      map that records every live wallet pointer and its creation context —
+    </p>
+    <div class="code-block">
+      <div class="code-header"><span>monerujo.cpp — lifecycle tracker</span><span class="lang">C++</span></div>
+      <div class="code-body"><span class="kw">static</span> std::unordered_map&lt;Monero::Wallet*, std::string&gt; g_walletTracker;
+<span class="kw">static</span> std::mutex g_walletTrackerMutex;</div>
+    </div>
+    <p>
+      — which doubles as a leak-detection aid during development. The extra
+      <code>g_walletMutex</code> matters in practice: a mobile app has background sync threads
+      and UI-triggered operations interleaving constantly, and that's exactly where races
+      creep in unnoticed.
+    </p>
+
+    <h3>4. Everything Else in the JNI Layer</h3>
+    <p>
+      A handful of smaller changes round out the file. Two JNI class references —
+      <code>class_ArrayList</code> and <code>class_WalletListener</code> — lost their
+      <code>static</code> qualifier, which widens their linkage from file-private to visible
+      across the process; that's most likely an unintended side effect of a refactor rather
+      than a deliberate choice, and worth flagging even though the practical exposure is
+      narrow. A <code>class_CoinsInfo</code> reference and its two supporting functions were
+      removed from the native side, but the Java <code>CoinsInfo</code> class itself is still
+      there — untouched — meaning any caller that still expects the native bridge to support
+      coin-control data will hit a null reference. And the Sidekick hardware-companion
+      integration, previously a real confirmation gate requiring a physical tap before a
+      transfer proceeds, is now stubbed to auto-confirm:
+    </p>
+    <div class="code-block">
+      <div class="code-header"><span>monerujo.cpp — ConfirmTransfers()</span><span class="lang">C++</span></div>
+      <div class="code-body"><span class="cm">// upstream — real Sidekick round-trip</span>
+<span class="kw">bool</span> ConfirmTransfers(<span class="kw">const</span> <span class="kw">char</span> *transfers) {
+    JNIEnv *jenv = attachJVM();
+    jstring _transfers = jenv-&gt;NewStringUTF(transfers);
+    jmethodID confirmMethod = jenv-&gt;GetStaticMethodID(class_SidekickService,
+        <span class="str">"ConfirmTransfers"</span>, <span class="str">"(Ljava/lang/String;)Z"</span>);
+    <span class="kw">return</span> jenv-&gt;CallStaticBooleanMethod(class_SidekickService, confirmMethod, _transfers);
+}
+
+<span class="cm">// fork — stubbed to always confirm</span>
+<span class="kw">bool</span> ConfirmTransfers(<span class="kw">const</span> <span class="kw">char</span> *transfers) {
+    LOGD(<span class="str">"ConfirmTransfers: auto-confirming (Sidekick disabled)"</span>);
+    <span class="kw">return</span> <span class="kw">true</span>;
+}</div>
+    </div>
+    <p>
+      That's a documented, deliberate decision — there's a <code>remove_sidekick.sh</code>
+      script that spells out exactly what it does — for environments that don't have the
+      Sidekick hardware available. It's the right call for that context, but it's worth
+      repeating clearly: <strong>anyone relying on Sidekick as a second confirmation factor
+      loses that protection silently</strong> if they deploy this fork without knowing.
+    </p>
+    <p>
+      On the tidier side of the ledger: the <code>WalletListener</code> struct became a proper
+      <code>class</code> with explicit public/private sections, protecting its internal
+      <code>jlistener</code> reference from accidental external access. A complete
+      <code>JNI_OnUnload</code> was added, cleaning up every global reference the file holds
+      rather than leaking them at library teardown. Three stray double-semicolons were fixed.
+      And a full set of forward declarations was added at the top of the file, so the compiler
+      catches mismatched signatures at the declaration rather than the call site.
+    </p>
+  </section>
+
+  <!-- E -->
+  <section>
+    <div class="section-kicker">§ E — The Rest of the Diff</div>
+    <h2>Java, Build Scripts, and the Boring-But-Important Stuff</h2>
+
+    <h3>One Word, One Regression</h3>
+    <p>The Java-layer diff is almost entirely one change:</p>
+    <div class="code-block">
+      <div class="code-header"><span>TransactionHistory.java — line 71</span><span class="lang">Java</span></div>
+      <div class="code-body"><span class="cm">// m2049r (upstream)</span>
+<span class="kw">private</span> <span class="kw">void</span> <span class="fn">refresh</span>() { ... }
+
+<span class="cm">// niyid (fork)</span>
+<span class="kw">public</span> <span class="kw">void</span> <span class="fn">refresh</span>() { ... }</div>
+    </div>
+    <p>
+      Upstream, <code>refresh()</code> is only ever reached through
+      <code>refreshWithNotes()</code>, which repopulates the transaction list and then loads
+      the user's private notes. Making it public opens a path that skips the notes entirely —
+      any caller that takes it will render a transaction list stripped of its annotations,
+      with no indication anything is missing. There may be a good reason (skipping notes during
+      a bulk sync, say), but with no Javadoc explaining the invariant and no new caller in the
+      fork actually using the wider visibility, it reads as an accidental side effect of a
+      refactor that changed an access modifier just to get something to compile.
+    </p>
+
+    <h3>Build System: Paths, Pins, and Housekeeping</h3>
+    <p>
+      CMake changes twice: <code>include_directories()</code> now runs before
+      <code>add_library()</code>, the more conventional order, and the external library layout
+      moved from a flat per-ABI structure to a normalised <code>output/&lt;abi&gt;/lib/</code>
+      tree. That second change is a clean break — prebuilt libraries built for one codebase
+      won't satisfy the other's paths anymore.
+    </p>
+    <p>
+      The Dockerfiles tell a small supply-chain story of their own. Upstream pins to
+      <code>debian:stable</code>, a rolling tag that can silently resolve to a different Debian
+      release depending on the day you build — the fork pins explicitly to
+      <code>debian:bullseye</code> across all three architecture images, arm32, arm64, and a new
+      x86_64 image for emulator testing. Pinned base images are the more defensible choice for
+      anything security-sensitive, at the cost of needing a manual bump when Bullseye reaches
+      end of life.
+    </p>
+    <p>
+      The <code>.gitignore</code> grew from 16 lines to 91, adding rules for <code>*.a</code>
+      and <code>*.so</code> among other things — which matters more than it sounds like, since
+      binary blobs committed to a repo can't be meaningfully reviewed and are a real supply
+      chain risk on their own.
+    </p>
+
+    <h3>New Files, Ranked by How Much They Matter</h3>
+    <div class="compare-cards">
+      <div class="compare-header" style="grid-template-columns: 200px 1fr 110px;">
+        <div class="compare-header-cell">File</div>
+        <div class="compare-header-cell">Purpose</div>
+        <div class="compare-header-cell">Relevance</div>
+      </div>
+      <div class="compare-row" style="grid-template-columns: 200px 1fr 110px;">
+        <div class="compare-cell dim-label">remove_sidekick.sh</div>
+        <div class="compare-cell">Documents the Sidekick auto-confirm stub described above</div>
+        <div class="compare-cell bad">High</div>
+      </div>
+      <div class="compare-row" style="grid-template-columns: 200px 1fr 110px;">
+        <div class="compare-cell dim-label">check_libs.sh</div>
+        <div class="compare-cell">Uses readelf to confirm each .so's ELF machine type matches its ABI folder</div>
+        <div class="compare-cell mid">Medium</div>
+      </div>
+      <div class="compare-row" style="grid-template-columns: 200px 1fr 110px;">
+        <div class="compare-cell dim-label">patch_monerujo.sh</div>
+        <div class="compare-cell">Scripts the CoinsInfo removal and refresh() compatibility fix</div>
+        <div class="compare-cell mid">Medium</div>
+      </div>
+      <div class="compare-row" style="grid-template-columns: 200px 1fr 110px;">
+        <div class="compare-cell dim-label">CONTRIBUTORS.md</div>
+        <div class="compare-cell">Avatar table of 60+ contributors</div>
+        <div class="compare-cell">Low</div>
+      </div>
+      <div class="compare-row" style="grid-template-columns: 200px 1fr 110px;">
+        <div class="compare-cell dim-label">BUILD_INSTRUCTIONS / CHECKLIST / QUICK_START.md</div>
+        <div class="compare-cell">Docker build guides across all three ABIs</div>
+        <div class="compare-cell">Low</div>
+      </div>
+      <div class="compare-row" style="grid-template-columns: 200px 1fr 110px;">
+        <div class="compare-cell dim-label">build-android-*.sh</div>
+        <div class="compare-cell">Per-architecture Docker build scripts</div>
+        <div class="compare-cell mid">Medium</div>
+      </div>
+    </div>
+    <p>
+      <code>check_libs.sh</code> is worth calling out specifically: an
+      <code>arm64-v8a</code> library that was actually compiled for 32-bit ARM would otherwise
+      fail silently at runtime, or load with wrong alignment assumptions. It's a small script,
+      easy to generate with AI assistance, and the kind of thing most projects simply never get
+      around to writing.
+    </p>
+  </section>
+
+  <!-- F -->
+  <section>
+    <div class="section-kicker">§ F — Scorecard</div>
+    <h2>What's Actually Better, and What Still Needs Work</h2>
+
+    <div class="compare-cards">
+      <div class="compare-header" style="grid-template-columns: 1fr 1.4fr;">
+        <div class="compare-header-cell">Area</div>
+        <div class="compare-header-cell">Assessment</div>
+      </div>
+      <div class="compare-row" style="grid-template-columns: 1fr 1.4fr;">
+        <div class="compare-cell dim-label">JNI string management</div>
+        <div class="compare-cell good">Significantly improved — RAII closes a real class of leak and use-after-free bugs.</div>
+      </div>
+      <div class="compare-row" style="grid-template-columns: 1fr 1.4fr;">
+        <div class="compare-cell dim-label">Null parameter guards</div>
+        <div class="compare-cell good">Substantially improved — systematic, not spot-fixed.</div>
+      </div>
+      <div class="compare-row" style="grid-template-columns: 1fr 1.4fr;">
+        <div class="compare-cell dim-label">Thread safety</div>
+        <div class="compare-cell good">Improved — two additional mutexes reduce race exposure.</div>
+      </div>
+      <div class="compare-row" style="grid-template-columns: 1fr 1.4fr;">
+        <div class="compare-cell dim-label">Error propagation</div>
+        <div class="compare-cell good">Improved — JNI exceptions are caught and logged instead of escaping silently.</div>
+      </div>
+      <div class="compare-row" style="grid-template-columns: 1fr 1.4fr;">
+        <div class="compare-cell dim-label">Build reproducibility</div>
+        <div class="compare-cell good">Improved — pinned base images, structured Docker scripts.</div>
+      </div>
+    </div>
+
+    <p>Set against that, four things need attention before this is production-ready:</p>
+    <ul class="plain-list">
+      <li><strong>Debug logging in release builds.</strong> The LOGD calls scattered through JNIStringGuard and the rest of the JNI layer need to be compiled out of release — logcat is readable by other apps with READ_LOGS on older API levels.</li>
+      <li><strong>Public refresh() with no documentation.</strong> Either add the Javadoc explaining the invariant, or revert it. Undocumented, it's just an encapsulation risk.</li>
+      <li><strong>The wallet tracker's runtime overhead.</strong> g_walletTracker and its mutex add cost to every wallet creation and teardown — this belongs behind a preprocessor flag, compiled out of release.</li>
+      <li><strong>Verification of the extern "C" restructuring</strong> — likely fine, but worth confirming all JNI symbol exports still resolve correctly across every ABI.</li>
+    </ul>
+
+    <div class="verdict-box">
+      <p>
+        Weigh it all together and the fork is <strong>technically ahead on code quality and
+        security architecture</strong>, especially at the JNI boundary where the real risk
+        concentrates. What it doesn't have — and can't manufacture — is the upstream's years of
+        production exposure on real mainnet wallets. Best path forward: upstream the JNI
+        hardening selectively, keep Sidekick support and CoinsInfo intact, and get the combined
+        result.
+      </p>
+    </div>
+  </section>
+
+  <!-- G -->
+  <section>
+    <div class="section-kicker">§ G — The Tell</div>
+    <h2>Is This Actually AI-Assisted? The Signs Say Yes</h2>
+    <p>
+      Nothing here is a smoking gun on its own, but the combination is hard to explain any
+      other way:
+    </p>
+    <ul class="plain-list">
+      <li><strong>Pattern consistency at scale.</strong> JNIStringGuard shows up at every relevant call site, dozens of them, with no drift in how it's applied. That kind of uniformity across a large file is unusual without tooling doing the heavy lifting.</li>
+      <li><strong>Documentation with LLM-shaped completeness.</strong> Four separate docs — build instructions, a checklist, a quick start, a contributor table — each covering its slice thoroughly. That's a very particular kind of thorough.</li>
+      <li><strong>Null checks with no gaps.</strong> Exhaustive coverage at every JNI entry point is exactly where manual review usually leaves holes, and exactly where an AI assistant doesn't get bored halfway through.</li>
+      <li><strong>An RAII class written by someone (or something) that knows the idioms.</strong> Non-copyable semantics, an exception handler in the constructor, an explicit validity flag — all the marks of someone who's absorbed a lot of idiomatic C++.</li>
+    </ul>
+    <p>
+      None of that makes AI a substitute for review — it's a force multiplier, letting a small
+      team apply best practices at a speed manual effort alone wouldn't sustain. And the flip
+      side is right there in the same diff: the debug logging left in production paths, the
+      quiet visibility change on <code>refresh()</code>, the tracker overhead nobody gated
+      behind a flag. These aren't C++ knowledge gaps. They're deployment-context gaps — exactly
+      what a human reviewer with production experience is for.
+    </p>
+  </section>
+
+  <!-- H -->
+  <section>
+    <div class="section-kicker">§ H — The Part Nobody's Talking About</div>
+    <h2>If Bisq Had This Bug, Does Haveno Too?</h2>
+    <p>
+      Here's the question that doesn't seem to be getting asked publicly: if the May 2026 flaw
+      lived in Bisq v1's trade protocol, what are the odds the same flaw exists in Haveno — and
+      by extension in RetoSwap, which forks Haveno?
+    </p>
+    <p>
+      The lineage isn't a loose analogy. Haveno is a direct fork of Bisq, built by the Monero
+      community specifically to swap Bitcoin for Monero as the base trading currency. RetoSwap
+      forks Haveno in turn, and currently runs the only live Haveno network doing real trades.
+      Haveno kept Bisq's Java application code, its P2P networking layer, and its dispute
+      resolution architecture, adapting only the trade protocol logic for Monero's
+      multisignature scheme. Any protocol-level bug in how Bisq v1 validates trade messages,
+      offer parameters, or payout conditions is a candidate to exist verbatim in Haveno — unless
+      that exact code path was deliberately rewritten during the fork.
+    </p>
+
+    <h3>Where the Two Actually Diverge</h3>
+    <p>
+      The biggest architectural split is the multisig model. Bisq moved to 2-of-2 (just buyer
+      and seller, no arbitrator key) back in v1.2, a deliberate trust-minimisation step. Haveno
+      went the other way on purpose, keeping the older 2-of-3 scheme with a live arbitrator key
+      — because Monero has no native timelock and no chained-transaction mechanism, which makes
+      Bisq v1's time-locked payout approach unworkable for XMR.
+    </p>
+    <div class="compare-cards">
+      <div class="compare-header" style="grid-template-columns: 1fr 1.4fr;">
+        <div class="compare-header-cell">Protocol</div>
+        <div class="compare-header-cell">Multisig Model</div>
+      </div>
+      <div class="compare-row" style="grid-template-columns: 1fr 1.4fr;">
+        <div class="compare-cell dim-label">Bisq v1 (current)</div>
+        <div class="compare-cell">2-of-2, buyer + seller only. Deadlocks resolve via time-locked payout to a DAO donation address.</div>
+      </div>
+      <div class="compare-row" style="grid-template-columns: 1fr 1.4fr;">
+        <div class="compare-cell dim-label">Haveno / RetoSwap</div>
+        <div class="compare-cell">2-of-3, buyer + seller + arbitrator, who can co-sign a payout with either party to resolve a dispute.</div>
+      </div>
+    </div>
+    <p>
+      That difference is real, but it doesn't obviously insulate Haveno from this specific class
+      of bug. The May 2026 exploit came down to a missing validation check on incoming trade
+      messages — that kind of gap doesn't care whether the multisig underneath is 2-of-2 or
+      2-of-3. It depends entirely on whether the receiving peer validates a message's parameters
+      before acting on it. If anything, Haveno's live arbitrator key arguably widens the blast
+      radius: a validation bypass that lets a malicious client manipulate payout conditions
+      could potentially pull an arbitrator's key into an unauthorised release — a scenario
+      that's structurally impossible in Bisq v1's keyless model.
+    </p>
+    <p>
+      This isn't a hypothetical concern pulled from nowhere, either. In 2021, Haveno's own team
+      found and responsibly disclosed a Bisq vulnerability that let attackers harvest payment
+      details — bank account numbers, names, addresses — at essentially no cost. Bisq patched
+      it in v1.7.0. The fact that Haveno's team caught that bug tells you they'd studied Bisq's
+      codebase closely — and the same logic runs in both directions: code Haveno forked from
+      Bisq inherited whatever bugs were already sitting in it at the time.
+    </p>
+    <div class="callout callout-warn">
+      <div class="callout-icon">⚠</div>
+      <div class="callout-body">
+        <strong>Where this leaves users</strong>
+        <p>Until Haveno's team explicitly confirms they've audited this specific validation gap
+        and ruled it out, treating Haveno and RetoSwap as potentially exposed is the sensible,
+        conservative position — especially given how much harder stolen XMR is to trace or
+        recover compared to BTC.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- I -->
+  <section>
+    <div class="section-kicker">§ I — Takeaways</div>
+    <h2>What This Means for AI-Assisted Wallet Engineering</h2>
+    <ul class="plain-list">
+      <li><strong>AI shines at systematic refactors.</strong> JNIStringGuard is the ideal use case — applying one well-understood pattern consistently across a large, repetitive file. Doing that by hand across 30+ JNI functions is tedious enough that it rarely gets prioritised in a volunteer project.</li>
+      <li><strong>It still needs a human in the loop.</strong> The refresh() visibility change and the production debug logging are exactly the subtle, context-dependent issues that need domain expertise to catch — AI tooling doesn't know your deployment the way your team does.</li>
+      <li><strong>Documentation is a genuinely high-leverage use case.</strong> Better build infrastructure lowers the barrier to contribution and improves reproducibility — both real security properties, not just developer-experience niceties.</li>
+      <li><strong>Validation logic is where wallets and trading protocols actually fail.</strong> Not cryptography — a missing payout-address check in 2020, a missing trade-validation check in 2026. Tools that can trace control flow and flag missing validation branches have direct, practical security value here.</li>
+      <li><strong>The JNI boundary deserves disproportionate investment.</strong> Any project wrapping a C++ crypto library in Java via JNI inherits two memory models, two exception systems, and cross-language threading all at once. Time spent hardening that seam pays back more than its share.</li>
+    </ul>
+  </section>
+
+  <!-- CONCLUSION -->
+  <section>
+    <div class="section-kicker">⌗ Conclusion</div>
+    <h2>Where This Leaves Us</h2>
+    <p>
+      XMRWallet sits at an intersection that raises the stakes on all of this: privacy-sensitive
+      software, a genuinely complex dual-language architecture, maintained by volunteers, and
+      used by people for whom operational security isn't an abstraction. Bisq's exploits in 2020
+      and 2026 are a standing reminder that missing validation or incomplete hardening in this
+      space costs real funds belonging to real people.
+    </p>
+    <p>
+      The Haveno question makes that sharper still. Bisq for BTC pairs, Haveno and RetoSwap for
+      XMR-native trading — the Monero ecosystem's P2P trading infrastructure shares a common
+      ancestor, and a protocol-level bug found in one is a live candidate to exist in the
+      others. The same privacy properties that make these platforms worth using are the ones
+      that make recovering funds after an exploit nearly impossible, which raises the cost of
+      getting the validation logic wrong.
+    </p>
+    <p>
+      What the niyid fork demonstrates, at minimum, is what intentional AI-assisted development
+      can look like in practice: consistent pattern application, thorough build documentation,
+      and meaningfully better defensive programming, produced at a pace that's hard to match by
+      hand. It won't write a perfectly secure wallet on its own. But it can help a small,
+      capable team do noticeably better work — and in an ecosystem built around privacy and
+      security, better work translates directly into safer outcomes for the people using it.
+      Whether that same rigor gets applied to trade-protocol validation before the next exploit,
+      rather than after, is still an open question.
+    </p>
+  </section>
+
+  <footer class="article-footer">
+    <div class="footer-left">
+      <p>SOURCE REPOSITORIES</p>
+      <div class="footer-refs">
+        github.com/m2049r/xmrwallet<br>
+        github.com/niyid/xmrwallet<br>
+        github.com/retoaccess1/haveno-reto
+      </div>
+    </div>
+    <a class="footer-link" href="https://github.com/niyid/xmrwallet" target="_blank">↗ View Fork on GitHub</a>
+  </footer>
+
+</div>
+</body>
+</html>

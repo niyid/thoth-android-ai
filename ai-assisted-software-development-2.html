@@ -84,6 +84,21 @@
     padding: 0 28px 96px;
   }
 
+  .header-banner {
+    margin: 40px 0 0;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .header-banner img {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  @media (max-width: 600px) {
+    .header-banner { margin-top: 24px; border-radius: 10px; }
+  }
+
   .hero {
     padding: 80px 0 64px;
     border-bottom: 1px solid var(--border);
@@ -505,6 +520,10 @@
 </head>
 <body>
 <div class="container">
+
+  <div class="header-banner">
+    <img src="ai-assisted-software-dev-header.png" alt="AI-Assisted Software Development" loading="eager">
+  </div>
 
   <header class="hero">
     <div class="hero-eyebrow">Case Study · Code Review · Security Analysis</div>
